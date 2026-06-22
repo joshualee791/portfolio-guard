@@ -1,0 +1,596 @@
+﻿<?php
+if (!defined('ABSPATH')) {
+    exit;
+}
+class MSP_PG_Utils
+{
+    public static function ensure_directory($path)
+    {
+        if (is_dir($path)) {
+            return true;
+        }
+        return wp_mkdir_p($path);
+    }
+    public static function join_paths()
+    {
+        $parts = func_get_args();
+        $filtered = array();
+        foreach ($parts as $index => $part) {
+            $part = (string) $part;
+            $part = $index === 0 ? rtrim($part, '/\\') : trim($part, '/\\');
+            if ($part !== '') {
+                $filtered[] = $part;
+            }
+        }
+        return implode(DIRECTORY_SEPARATOR, $filtered);
+    }
+    public static function relative_path($path, $base)
+    {
+        $path = wp_normalize_path($path);
+        $base = trailingslashit(wp_normalize_path($base));
+        if (strpos($path, $base) === 0) {
+            return ltrim(substr($path, strlen($base)), '/');
+        }
+        return ltrim($path, '/');
+    }
+    public static function recursive_files($dir)
+    {
+        $files = array();
+        if (!is_dir($dir)) {
+            return $files;
+        }
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($iterator as $item) {
+            if ($item->isFile()) {
+                $files[] = $item->getPathname();
+            }
+        }
+        sort($files);
+        return $files;
+    }
+    public static function write_json($path, $data)
+    {
+        $json = wp_json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if ($json === false) {
+            return false;
+        }
+        return file_put_contents($path, $json) !== false;
+    }
+    public static function write_text($path, $contents)
+    {
+        return file_put_contents($path, $contents) !== false;
+    }
+    public static function hash_file_safe($path)
+    {
+        return is_readable($path) ? strtoupper(hash_file('sha256', $path)) : '';
+    }
+    public static function hash_directory($dir)
+    {
+        $hashes = array();
+        foreach (self::recursive_files($dir) as $file) {
+            $hashes[self::relative_path($file, $dir)] = self::hash_file_safe($file);
+        }
+        ksort($hashes);
+        return $hashes;
+    }
+    public static function directory_size($dir)
+    {
+        $size = 0;
+        foreach (self::recursive_files($dir) as $file) {
+            $size += (int) filesize($file);
+        }
+        return $size;
+    }
+    public static function directory_counts($dir)
+    {
+        $fileCount = 0;
+        $directoryCount = 0;
+
+        if (!is_dir($dir)) {
+            return array(
+                'file_count' => 0,
+                'directory_count' => 0,
+            );
+        }
+
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            if ($item->isDir()) {
+                $directoryCount++;
+            } elseif ($item->isFile()) {
+                $fileCount++;
+            }
+        }
+
+        return array(
+            'file_count' => $fileCount,
+            'directory_count' => $directoryCount,
+        );
+    }
+    public static function directory_fingerprint($dir)
+    {
+        $rows = array();
+
+        foreach (self::recursive_files($dir) as $file) {
+            $relative = self::relative_path($file, $dir);
+            $rows[] = wp_json_encode(array(
+                'path' => $relative,
+                'size' => (int) filesize($file),
+                'sha256' => self::hash_file_safe($file),
+            ));
+        }
+
+        sort($rows);
+
+        return strtoupper(hash('sha256', implode("\n", $rows)));
+    }
+    public static function detect_plugin_files($plugin_dir)
+    {
+        $files = glob(trailingslashit($plugin_dir) . '*.php');
+        $basenames = array();
+        if ($files === false) {
+            return $basenames;
+        }
+        foreach ($files as $file) {
+            $basenames[] = basename(dirname($file)) . '/' . basename($file);
+        }
+        sort($basenames);
+        return $basenames;
+    }
+    public static function move_directory($source, $destination)
+    {
+        self::ensure_directory(dirname($destination));
+        return @rename($source, $destination);
+    }
+    public static function copy_directory($source, $destination)
+    {
+        if (!is_dir($source)) {
+            return false;
+        }
+        self::ensure_directory($destination);
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($source, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($iterator as $item) {
+            $targetPath = self::join_paths($destination, self::relative_path($item->getPathname(), $source));
+            if ($item->isDir()) {
+                self::ensure_directory($targetPath);
+                continue;
+            }
+            self::ensure_directory(dirname($targetPath));
+            if (!@copy($item->getPathname(), $targetPath)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    public static function zip_directory($sourceDir, $zipPath)
+    {
+        if (!class_exists('ZipArchive')) {
+            return false;
+        }
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            return false;
+        }
+        $sourceDir = realpath($sourceDir);
+        if ($sourceDir === false) {
+            $zip->close();
+            return false;
+        }
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($sourceDir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($iterator as $item) {
+            $fullPath = $item->getPathname();
+            if (wp_normalize_path($fullPath) === wp_normalize_path($zipPath)) {
+                continue;
+            }
+            $localPath = ltrim(str_replace(wp_normalize_path($sourceDir), '', wp_normalize_path($fullPath)), '/');
+            if ($item->isDir()) {
+                $zip->addEmptyDir($localPath);
+            } else {
+                $zip->addFile($fullPath, $localPath);
+            }
+        }
+        $zip->close();
+        return file_exists($zipPath) && filesize($zipPath) > 0;
+    }
+    public static function zip_live_directory($sourceDir, $zipPath)
+    {
+        return self::zip_directory($sourceDir, $zipPath);
+    }
+    public static function normalize_list($values)
+    {
+        $values = array_values(array_unique(array_filter($values)));
+        sort($values);
+        return $values;
+    }
+    public static function random_payload_structure($plugin_dir)
+    {
+        $matches = array(
+            'directories' => array(),
+            'php_files' => array(),
+            'asset_js' => array(),
+        );
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($plugin_dir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($iterator as $item) {
+            $relative = self::relative_path($item->getPathname(), $plugin_dir);
+            if ($item->isDir() && preg_match('/^[a-z0-9]{5,6}$/i', basename($relative))) {
+                $matches['directories'][] = $relative;
+            }
+            if ($item->isFile() && preg_match('/^[a-z0-9]{8}\.php$/i', basename($relative))) {
+                $matches['php_files'][] = $relative;
+            }
+            if ($item->isFile() && preg_match('#^assets/[a-z0-9]{8}\.js$#i', str_replace('\\', '/', $relative))) {
+                $matches['asset_js'][] = $relative;
+            }
+        }
+        foreach ($matches as $key => $values) {
+            $matches[$key] = self::normalize_list($values);
+        }
+        return $matches;
+    }
+    public static function markdown_report($scanReport)
+    {
+        $lines = array();
+        $lines[] = '# MSP Portfolio Guard Scan Report';
+        $lines[] = '';
+        $lines[] = '- Site URL: `' . $scanReport['site_url'] . '`';
+        $lines[] = '- Scan timestamp: `' . $scanReport['scan_timestamp'] . '`';
+        $lines[] = '- Trigger: `' . $scanReport['trigger'] . '`';
+        $lines[] = '- Safe mode: `' . ($scanReport['safe_mode'] ? 'enabled' : 'disabled') . '`';
+        $lines[] = '- Tier 1 override: `' . ($scanReport['allow_tier1_remediation'] ? 'enabled' : 'disabled') . '`';
+        $lines[] = '- Evidence retention mode: `' . $scanReport['evidence_retention_mode'] . '`';
+        $lines[] = '- Dry run: `' . ($scanReport['dry_run'] ? 'enabled' : 'disabled') . '`';
+        $lines[] = '- Detections: `' . count($scanReport['detections']) . '`';
+        if (!empty($scanReport['cleanup'])) {
+            $lines[] = '- Cleanup: `' . self::cleanup_summary($scanReport['cleanup']) . '`';
+        }
+        $lines[] = '';
+        $groups = array(
+            'confirmed_malware' => 'Confirmed Malware',
+            'heuristic_findings' => 'Heuristic Findings',
+            'interesting_findings' => 'Interesting Findings',
+        );
+        foreach ($groups as $key => $label) {
+            if (empty($scanReport[$key])) {
+                continue;
+            }
+            $lines[] = '## ' . $label;
+            $lines[] = '';
+            foreach ($scanReport[$key] as $detection) {
+                $lines[] = '### ' . $detection['plugin_slug'] . ' (' . strtoupper($detection['tier']) . ')';
+                $lines[] = '';
+                $lines[] = '- Live path: `' . $detection['live_path'] . '`';
+                $lines[] = '- Artifact path: `' . $detection['artifact_dir'] . '`';
+                $lines[] = '- Evidence mode: `' . $detection['evidence_retention_mode'] . '`';
+                $lines[] = '- Preservation verified: `' . ($detection['preservation_verified'] ? 'yes' : 'no') . '`';
+                $lines[] = '- Protected plugin: `' . ($detection['protected_plugin'] ? 'yes' : 'no') . '`';
+                $lines[] = '- Score: `' . $detection['score'] . '`';
+                $lines[] = '- Confidence: `' . $detection['confidence'] . '`';
+                $lines[] = '- Source: `' . $detection['source'] . '`';
+                $lines[] = '- Actions: `' . implode('; ', $detection['action_descriptions']) . '`';
+                $lines[] = '- Exact matches: `' . implode(', ', $detection['exact_match_types']) . '`';
+                $lines[] = '- Indicators: `' . implode(', ', $detection['matched_indicators']) . '`';
+                $lines[] = '- Reasons: `' . implode(', ', $detection['reason_labels']) . '`';
+                if (!empty($detection['warnings'])) {
+                    $lines[] = '- Warnings: `' . implode(', ', $detection['warnings']) . '`';
+                }
+                $lines[] = '';
+            }
+        }
+        if (!empty($scanReport['errors'])) {
+            $lines[] = '## Errors';
+            $lines[] = '';
+            foreach ($scanReport['errors'] as $error) {
+                $lines[] = '- ' . $error;
+            }
+            $lines[] = '';
+        }
+        return implode("\n", $lines);
+    }
+    public static function plain_text_report($scanReport)
+    {
+        $summary = self::scan_summary_counts($scanReport);
+        $lines = array(
+            'MSP Portfolio Guard Scan Report',
+            'Site: ' . $scanReport['site_url'],
+            'Timestamp: ' . $scanReport['scan_timestamp'],
+            'Trigger: ' . $scanReport['trigger'],
+            'Safe Mode: ' . ($scanReport['safe_mode'] ? 'Enabled' : 'Disabled'),
+            'Tier 1 Override: ' . ($scanReport['allow_tier1_remediation'] ? 'Enabled' : 'Disabled'),
+            'Evidence Retention Mode: ' . $scanReport['evidence_retention_mode'],
+            'Dry Run: ' . ($scanReport['dry_run'] ? 'Enabled' : 'Disabled'),
+        );
+        if (!empty($scanReport['cleanup'])) {
+            $lines[] = 'Retention cleanup: ' . self::cleanup_summary($scanReport['cleanup']);
+        }
+        $lines[] = '';
+        $lines[] = 'Executive Summary';
+        $lines[] = 'Confirmed Malware: ' . count($scanReport['confirmed_malware']);
+        $lines[] = 'Heuristic Findings: ' . count($scanReport['heuristic_findings']);
+        $lines[] = 'Interesting Findings: ' . count($scanReport['interesting_findings']);
+        $lines[] = 'Remediated: ' . $summary['remediated'];
+        $lines[] = 'Would Remediate: ' . $summary['would_remediate'];
+        $sections = array(
+            'confirmed_malware' => 'Confirmed Malware',
+            'heuristic_findings' => 'Heuristic Findings',
+            'interesting_findings' => 'Interesting Findings',
+        );
+        foreach ($sections as $key => $label) {
+            $lines[] = '';
+            $lines[] = $label;
+            if (empty($scanReport[$key])) {
+                $lines[] = 'None.';
+                continue;
+            }
+            foreach ($scanReport[$key] as $detection) {
+                $lines[] = '- Plugin: ' . $detection['plugin_slug'];
+                $lines[] = '  Tier: ' . strtoupper($detection['tier']);
+                $lines[] = '  Score: ' . $detection['score'];
+                $lines[] = '  Confidence: ' . $detection['confidence'];
+                $lines[] = '  Source: ' . $detection['source'];
+                $lines[] = '  Action: ' . implode('; ', $detection['action_descriptions']);
+                if (!empty($detection['reason_labels'])) {
+                    $lines[] = '  Reasons: ' . implode(', ', $detection['reason_labels']);
+                }
+                if (!empty($detection['exact_match_types'])) {
+                    $lines[] = '  Exact Matches: ' . implode(', ', $detection['exact_match_types']);
+                }
+                if (!empty($detection['bundle_eligible'])) {
+                    $lines[] = '  Evidence: ' . ($detection['preservation_verified'] ? 'Verified' : ($scanReport['dry_run'] ? 'Simulated' : 'Generated/Partial'));
+                    $lines[] = '  Artifact Location: ' . $detection['artifact_dir'];
+                    $lines[] = '  Evidence Mode: ' . $detection['evidence_retention_mode'];
+                }
+            }
+        }
+        if (!empty($scanReport['errors'])) {
+            $lines[] = '';
+            $lines[] = 'Errors';
+            foreach ($scanReport['errors'] as $error) {
+                $lines[] = '- ' . $error;
+            }
+        }
+        return implode("\n", $lines) . "\n";
+    }
+    public static function html_escape($value)
+    {
+        return esc_html((string) $value);
+    }
+    public static function html_report($scanReport)
+    {
+        $confirmedCount = count($scanReport['confirmed_malware']);
+        $heuristicCount = count($scanReport['heuristic_findings']);
+        $interestingCount = count($scanReport['interesting_findings']);
+        $summary = self::scan_summary_counts($scanReport);
+        $remediated = $summary['remediated'];
+        $wouldRemediate = $summary['would_remediate'];
+        $renderTable = function ($headers, $rows) {
+            if (empty($rows)) {
+                return '<p>None.</p>';
+            }
+            $html = '<table style="border-collapse:collapse;width:100%;margin:12px 0;">';
+            $html .= '<thead><tr>';
+            foreach ($headers as $header) {
+                $html .= '<th style="border:1px solid #d0d7de;padding:8px;background:#f6f8fa;text-align:left;">' . $header . '</th>';
+            }
+            $html .= '</tr></thead><tbody>';
+            foreach ($rows as $row) {
+                $html .= '<tr>';
+                foreach ($row as $cell) {
+                    $html .= '<td style="border:1px solid #d0d7de;padding:8px;vertical-align:top;">' . $cell . '</td>';
+                }
+                $html .= '</tr>';
+            }
+            $html .= '</tbody></table>';
+            return $html;
+        };
+        $badge = function ($bg, $fg, $label) {
+            return '<span style="display:inline-block;font-weight:600;padding:2px 8px;border-radius:999px;background:' . $bg . ';color:' . $fg . ';">&#9679; ' . self::html_escape($label) . '</span>';
+        };
+        $evidenceRows = array();
+        foreach ($scanReport['detections'] as $detection) {
+            if (empty($detection['bundle_eligible'])) {
+                continue;
+            }
+            $status = $detection['preservation_verified'] ? 'Verified' : ($scanReport['dry_run'] ? 'Simulated' : 'Generated/Partial');
+            $evidenceRows[] = array(
+                self::html_escape($detection['plugin_slug'] . ' Evidence Manifest'),
+                self::html_escape($scanReport['dry_run'] ? 'Simulated' : 'Generated'),
+            );
+            if ($detection['evidence_retention_mode'] !== 'metadata_only') {
+                $evidenceRows[] = array(
+                    self::html_escape($detection['plugin_slug'] . ' Evidence Archive'),
+                    self::html_escape($status),
+                );
+            }
+            $evidenceRows[] = array(
+                self::html_escape($detection['plugin_slug'] . ' Evidence Mode'),
+                self::html_escape($detection['evidence_retention_mode']),
+            );
+        }
+        $artifactRows = array();
+        foreach ($scanReport['detections'] as $detection) {
+            if (empty($detection['bundle_eligible'])) {
+                continue;
+            }
+            $artifactRows[] = array(
+                self::html_escape($detection['plugin_slug']),
+                self::html_escape($detection['artifact_dir']),
+            );
+        }
+        $html = '<html><body style="font-family:Arial,sans-serif;color:#1f2328;">';
+        $html .= '<h1>MSP Portfolio Guard Scan Report</h1>';
+        $html .= '<p>Site: <strong>' . self::html_escape($scanReport['site_url']) . '</strong><br>';
+        $html .= 'Timestamp: <strong>' . self::html_escape($scanReport['scan_timestamp']) . '</strong><br>';
+        $html .= 'Trigger: <strong>' . self::html_escape($scanReport['trigger']) . '</strong><br>';
+        $html .= 'Safe Mode: <strong>' . self::html_escape($scanReport['safe_mode'] ? 'Enabled' : 'Disabled') . '</strong><br>';
+        $html .= 'Tier 1 Override: <strong>' . self::html_escape($scanReport['allow_tier1_remediation'] ? 'Enabled' : 'Disabled') . '</strong><br>';
+        $html .= 'Evidence Retention Mode: <strong>' . self::html_escape($scanReport['evidence_retention_mode']) . '</strong></p>';
+        if (!empty($scanReport['cleanup'])) {
+            $html .= '<p><strong>Retention cleanup:</strong> ' . self::html_escape(self::cleanup_summary($scanReport['cleanup'])) . '</p>';
+        }
+        $html .= '<h2>Executive Summary</h2>';
+        $html .= $renderTable(
+            array('Metric', 'Value'),
+            array(
+                array($badge('#dcfce7', '#166534', 'Confirmed Malware'), self::html_escape($confirmedCount)),
+                array($badge('#fef9c3', '#854d0e', 'Heuristic Findings'), self::html_escape($heuristicCount)),
+                array($badge('#fee2e2', '#991b1b', 'Interesting Findings'), self::html_escape($interestingCount)),
+                array(self::html_escape('Safe Mode'), self::html_escape($scanReport['safe_mode'] ? 'Enabled' : 'Disabled')),
+                array(self::html_escape('Tier 1 Override'), self::html_escape($scanReport['allow_tier1_remediation'] ? 'Enabled' : 'Disabled')),
+                array(self::html_escape('Evidence Retention Mode'), self::html_escape($scanReport['evidence_retention_mode'])),
+                array(self::html_escape('Remediated'), self::html_escape($remediated)),
+                array(self::html_escape('Would Remediate'), self::html_escape($wouldRemediate)),
+            )
+        );
+        $html .= '<h2>Confirmed Malware</h2>';
+        $html .= $renderTable(
+            array('Plugin', 'Tier', 'Score', 'Confidence', 'Source', 'Action', 'Evidence'),
+            array_map(function ($detection) {
+                return array(
+                    self::html_escape($detection['plugin_slug']),
+                    self::html_escape(strtoupper($detection['tier'])),
+                    self::html_escape($detection['score']),
+                    self::html_escape($detection['confidence']),
+                    self::html_escape($detection['source']),
+                    self::html_escape(implode('; ', $detection['action_descriptions'])),
+                    self::html_escape($detection['preservation_verified'] ? 'Yes' : 'No'),
+                );
+            }, $scanReport['confirmed_malware'])
+        );
+        $html .= '<h2>Heuristic Findings</h2>';
+        $html .= $renderTable(
+            array('Plugin', 'Tier', 'Score', 'Action', 'Reasons'),
+            array_map(function ($detection) {
+                return array(
+                    self::html_escape($detection['plugin_slug']),
+                    self::html_escape(strtoupper($detection['tier'])),
+                    self::html_escape($detection['score']),
+                    self::html_escape(implode('; ', $detection['action_descriptions'])),
+                    self::html_escape(implode(', ', $detection['reason_labels'])),
+                );
+            }, $scanReport['heuristic_findings'])
+        );
+        $html .= '<h2>Interesting Findings</h2>';
+        $html .= $renderTable(
+            array('Plugin', 'Tier', 'Score', 'Action', 'Reasons'),
+            array_map(function ($detection) {
+                return array(
+                    self::html_escape($detection['plugin_slug']),
+                    self::html_escape(strtoupper($detection['tier'])),
+                    self::html_escape($detection['score']),
+                    self::html_escape(implode('; ', $detection['action_descriptions'])),
+                    self::html_escape(implode(', ', $detection['reason_labels'])),
+                );
+            }, $scanReport['interesting_findings'])
+        );
+        $html .= '<h2>Evidence Status</h2>';
+        $html .= $renderTable(array('Artifact', 'Status'), $evidenceRows);
+        $html .= '<h2>Artifact Locations</h2>';
+        $html .= $renderTable(array('Plugin', 'Artifact Location'), $artifactRows);
+        $html .= '</body></html>';
+        return $html;
+    }
+    public static function describe_action($action)
+    {
+        $map = array(
+            'REPORT_ONLY_NO_CHANGES' => 'Reported only; no site changes made',
+            'SAFE_MODE_ENABLED' => 'Safe mode prevented automatic remediation',
+            'TIER1_OVERRIDE_ENABLED' => 'Tier 1 override allowed confirmed malware remediation while safe mode remained enabled',
+            'DRY_RUN_ENABLED' => 'Dry run simulated all actions',
+            'PROTECTED_PLUGIN_REPORT_ONLY' => 'Protected plugin kept in report-only mode',
+            'CONFIRMED_MALWARE_IDENTIFIED' => 'Confirmed malware identified',
+            'HEURISTIC_FINDING_IDENTIFIED' => 'Heuristic finding identified',
+            'INTERESTING_FINDING_IDENTIFIED' => 'Interesting finding identified',
+            'PLUGIN_DEACTIVATED' => 'Plugin deactivated before remediation',
+            'EVIDENCE_MANIFEST_CREATED' => 'Evidence manifest created',
+            'EVIDENCE_ARCHIVE_CREATED' => 'Compressed evidence archive created',
+            'FULL_ARTIFACT_SNAPSHOT_CREATED' => 'Full artifact snapshot created',
+            'BUNDLE_VERIFIED' => 'Evidence bundle verified',
+            'QUARANTINE_COMPLETED' => 'Temporary quarantine completed',
+            'LIVE_PLUGIN_REMOVED' => 'Live plugin directory removed',
+            'HEURISTIC_REPORT_ONLY' => 'Heuristic finding reported only',
+            'INTERESTING_REPORT_ONLY' => 'Interesting finding reported only',
+            'WOULD_PLUGIN_DEACTIVATE' => 'Would deactivate active plugin',
+            'WOULD_EVIDENCE_MANIFEST_CREATE' => 'Would create evidence manifest',
+            'WOULD_EVIDENCE_ARCHIVE_CREATE' => 'Would create compressed evidence archive',
+            'WOULD_FULL_ARTIFACT_RETAIN' => 'Would retain full artifact set',
+            'WOULD_LIVE_PLUGIN_REMOVE' => 'Would remove live plugin directory after verified evidence preservation',
+        );
+        return isset($map[$action]) ? $map[$action] : $action;
+    }
+    public static function describe_actions($actions)
+    {
+        $descriptions = array();
+        foreach ($actions as $action) {
+            $descriptions[] = self::describe_action($action);
+        }
+        return $descriptions;
+    }
+    public static function scan_summary_counts($scanReport)
+    {
+        $remediated = 0;
+        $wouldRemediate = 0;
+        foreach ($scanReport['detections'] as $detection) {
+            $hasRemediated = false;
+            $hasWouldRemediate = false;
+            foreach ($detection['actions'] as $action) {
+                if ($action === 'PLUGIN_DEACTIVATED' || $action === 'QUARANTINE_COMPLETED' || $action === 'LIVE_PLUGIN_REMOVED') {
+                    $hasRemediated = true;
+                }
+                if (in_array($action, array('WOULD_PLUGIN_DEACTIVATE', 'WOULD_EVIDENCE_MANIFEST_CREATE', 'WOULD_EVIDENCE_ARCHIVE_CREATE', 'WOULD_FULL_ARTIFACT_RETAIN', 'WOULD_LIVE_PLUGIN_REMOVE'), true)) {
+                    $hasWouldRemediate = true;
+                }
+            }
+            if ($hasRemediated) {
+                $remediated++;
+            }
+            if ($hasWouldRemediate) {
+                $wouldRemediate++;
+            }
+        }
+        return array(
+            'remediated' => $remediated,
+            'would_remediate' => $wouldRemediate,
+        );
+    }
+    public static function cleanup_summary($cleanup)
+    {
+        if (empty($cleanup)) {
+            return 'No cleanup performed.';
+        }
+        $parts = array();
+        $parts[] = sprintf(
+            '%d expired remediation directories %s',
+            isset($cleanup['deleted_count']) ? (int) $cleanup['deleted_count'] : 0,
+            (isset($cleanup['mode']) && $cleanup['mode'] === 'simulated') ? 'would be deleted' : 'deleted'
+        );
+        if (isset($cleanup['scrubbed_count'])) {
+            $parts[] = sprintf(
+                '%d legacy executable artifact directories %s',
+                (int) $cleanup['scrubbed_count'],
+                (isset($cleanup['mode']) && $cleanup['mode'] === 'simulated') ? 'would be scrubbed' : 'scrubbed'
+            );
+        }
+        $parts[] = sprintf(
+            'retention set to %d days',
+            isset($cleanup['retention_days']) ? (int) $cleanup['retention_days'] : 0
+        );
+
+        return implode('; ', $parts) . '.';
+    }
+}

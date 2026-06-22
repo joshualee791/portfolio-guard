@@ -1,0 +1,55 @@
+# OS metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editors and IDEs
+.idea/
+.vs/
+.vscode/
+*.code-workspace
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+*.pid
+*.err
+*.out
+
+# Logs
+*.log
+
+# Language caches
+__pycache__/
+*.pyc
+*.pyo
+.phpunit.result.cache
+
+# Coverage
+coverage/
+
+# Build scratch output
+tmp/
+temp/
+
+# Generated release artifacts
+releases/**/*.zip
+releases/historical/
+archive/inventories/*
+
+# Private site-specific operational captures
+malware-corpus/site-artifacts/
+
+# Windows extras
+ehthumbs.db
+$RECYCLE.BIN/
+
+# Additional editor state
+.fleet/
+.history/
