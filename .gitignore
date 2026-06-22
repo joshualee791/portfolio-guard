@@ -53,3 +53,6 @@ $RECYCLE.BIN/
 # Additional editor state
 .fleet/
 .history/
+
+# Release validation workspaces
+_release_validation/
