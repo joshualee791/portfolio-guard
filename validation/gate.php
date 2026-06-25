@@ -36,6 +36,7 @@ $GLOBALS['msp_pg_test_uploads_base'] = $gateWorkspace . DIRECTORY_SEPARATOR . 'u
 // Include runner classes (class definitions only; no auto-run)
 require_once VALIDATION_ROOT . DIRECTORY_SEPARATOR . 'runner' . DIRECTORY_SEPARATOR . 'KnownMalwareTest.php';
 require_once VALIDATION_ROOT . DIRECTORY_SEPARATOR . 'runner' . DIRECTORY_SEPARATOR . 'CleanPluginTest.php';
+require_once VALIDATION_ROOT . DIRECTORY_SEPARATOR . 'runner' . DIRECTORY_SEPARATOR . 'UpdateInfrastructureTest.php';
 require_once VALIDATION_ROOT . DIRECTORY_SEPARATOR . 'runner' . DIRECTORY_SEPARATOR . 'SyntheticBehaviorTest.php';
 
 $overallFailed = false;
@@ -67,7 +68,20 @@ if ($cp['failed'] > 0) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. Synthetic Behaviors (gate_blocking per-entry; non-blocking in Phase 2)
+// 3. Update Infrastructure (blocking)
+// ─────────────────────────────────────────────────────────────────────────────
+$ui = (new UpdateInfrastructureTest())->run();
+foreach ($ui['results'] as $line) {
+    echo $line . "\n";
+}
+echo "\n";
+
+if ($ui['failed'] > 0) {
+    $overallFailed = true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Synthetic Behaviors (gate_blocking per-entry; non-blocking in Phase 2)
 // ─────────────────────────────────────────────────────────────────────────────
 $sb = (new SyntheticBehaviorTest())->run();
 foreach ($sb['results'] as $line) {
@@ -80,16 +94,17 @@ if ($sb['blocking_failed'] > 0) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. Summary
+// 5. Summary
 // ─────────────────────────────────────────────────────────────────────────────
 $syntheticLabel = $sb['blocking_failed'] > 0
     ? sprintf('%d / %d passed', $sb['passed'], $sb['total'])
     : sprintf('%d / %d passed (non-blocking in Phase 2)', $sb['passed'], $sb['total']);
 
 echo "--- Portfolio Guard Validation Gate ---\n";
-echo sprintf("Known Malware:  %d / %d passed\n", $km['passed'], $km['total']);
-echo sprintf("Clean Plugins:  %d / %d passed\n", $cp['passed'], $cp['total']);
-echo sprintf("Synthetic:      %s\n", $syntheticLabel);
+echo sprintf("Known Malware:         %d / %d passed\n", $km['passed'], $km['total']);
+echo sprintf("Clean Plugins:         %d / %d passed\n", $cp['passed'], $cp['total']);
+echo sprintf("Update Infrastructure: %d / %d passed\n", $ui['passed'], $ui['total']);
+echo sprintf("Synthetic:             %s\n", $syntheticLabel);
 echo "\n";
 
 // Gate workspace cleanup
@@ -109,6 +124,9 @@ if ($overallFailed) {
     }
     if ($cp['failed'] > 0) {
         $reasons[] = $cp['failed'] . ' clean plugin ' . ($cp['failed'] === 1 ? 'test' : 'tests') . ' failed';
+    }
+    if ($ui['failed'] > 0) {
+        $reasons[] = $ui['failed'] . ' update infrastructure ' . ($ui['failed'] === 1 ? 'test' : 'tests') . ' failed';
     }
     if ($sb['blocking_failed'] > 0) {
         $reasons[] = $sb['blocking_failed'] . ' synthetic ' . ($sb['blocking_failed'] === 1 ? 'test' : 'tests') . ' failed';

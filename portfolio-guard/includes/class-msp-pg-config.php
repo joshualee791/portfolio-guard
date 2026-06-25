@@ -176,4 +176,26 @@ class MSP_PG_Config
     {
         return (int) apply_filters('msp_pg_artifact_retention_days', 7);
     }
+
+    // -------------------------------------------------------------------------
+    // Update infrastructure (Spec 007)
+    // -------------------------------------------------------------------------
+
+    public static function update_manifest_url()
+    {
+        return 'https://registry.portfolioguard.internal/v1/manifest.json';
+    }
+
+    public static function update_key()
+    {
+        return '3a7f9c2d4e1b6a8f0c9d2e5b3a7c4f1d8e2b6a9c0d3f5b1e4a7c2d6b9f0e3a8c';
+    }
+
+    public static function applied_registry_path()
+    {
+        $uploads = wp_upload_dir();
+        return !empty($uploads['basedir'])
+            ? $uploads['basedir'] . DIRECTORY_SEPARATOR . 'portfolio-guard' . DIRECTORY_SEPARATOR . 'signatures.json'
+            : '';
+    }
 }

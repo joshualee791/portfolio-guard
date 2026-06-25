@@ -341,6 +341,65 @@ if (!class_exists('ZipArchive')) {
     }
 }
 
+if (!class_exists('WP_Error')) {
+    class WP_Error
+    {
+        private $code;
+        private $message;
+
+        public function __construct($code = '', $message = '')
+        {
+            $this->code    = $code;
+            $this->message = $message;
+        }
+
+        public function get_error_message()
+        {
+            return $this->message;
+        }
+
+        public function get_error_code()
+        {
+            return $this->code;
+        }
+    }
+}
+
+if (!function_exists('is_wp_error')) {
+    function is_wp_error($thing)
+    {
+        return $thing instanceof WP_Error;
+    }
+}
+
+if (!function_exists('get_site_url')) {
+    function get_site_url($blog_id = null, $path = '', $scheme = null)
+    {
+        return 'https://example.test' . (string) $path;
+    }
+}
+
+if (!function_exists('wp_remote_get')) {
+    function wp_remote_get($url, $args = array())
+    {
+        return new WP_Error('http_request_failed', 'HTTP requests are not available in the test environment.');
+    }
+}
+
+if (!function_exists('wp_remote_retrieve_response_code')) {
+    function wp_remote_retrieve_response_code($response)
+    {
+        return isset($response['response']['code']) ? (int) $response['response']['code'] : 0;
+    }
+}
+
+if (!function_exists('wp_remote_retrieve_body')) {
+    function wp_remote_retrieve_body($response)
+    {
+        return isset($response['body']) ? (string) $response['body'] : '';
+    }
+}
+
 require_once dirname(__DIR__) . '/includes/class-msp-pg-config.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-signatures.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-utils.php';
@@ -349,4 +408,9 @@ require_once dirname(__DIR__) . '/includes/class-msp-pg-behavior-classifier.php'
 require_once dirname(__DIR__) . '/includes/class-msp-pg-detector.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-runtime.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-remediator.php';
+require_once dirname(__DIR__) . '/includes/class-msp-pg-update-verifier.php';
+require_once dirname(__DIR__) . '/includes/class-msp-pg-updater.php';
+require_once dirname(__DIR__) . '/includes/class-msp-pg-update-scheduler.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-plugin.php';
+
+MSP_PG_UpdateScheduler::init();
