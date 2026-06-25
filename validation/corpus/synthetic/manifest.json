@@ -1,0 +1,72 @@
+{
+  "schema_version": "1",
+  "phase3_blocking": true,
+  "entries": [
+    {
+      "slug": "synthetic-c2-channel",
+      "target_profile": "command-and-control",
+      "fixture_dir": "synthetic-c2-channel",
+      "expected_tier_phase3": "tier2",
+      "expected_confidence_phase3": "Strong Heuristic",
+      "must_not_trigger_tier1": true,
+      "signals_emulated": [
+        "custom_rest_namespace",
+        "remote_requests"
+      ],
+      "gate_blocking": false
+    },
+    {
+      "slug": "synthetic-payload-delivery",
+      "target_profile": "payload-delivery",
+      "fixture_dir": "synthetic-payload-delivery",
+      "expected_tier_phase3": "tier2",
+      "expected_confidence_phase3": "Strong Heuristic",
+      "must_not_trigger_tier1": true,
+      "signals_emulated": [
+        "suspicious_remote_javascript",
+        "dynamic_script_registration"
+      ],
+      "gate_blocking": false
+    },
+    {
+      "slug": "synthetic-operator-access",
+      "target_profile": "operator-access",
+      "fixture_dir": "synthetic-operator-access",
+      "expected_tier_phase3": "tier2",
+      "expected_confidence_phase3": "Strong Heuristic",
+      "must_not_trigger_tier1": true,
+      "signals_emulated": [
+        "cookie_manipulation",
+        "ajax_handlers"
+      ],
+      "gate_blocking": false
+    },
+    {
+      "slug": "synthetic-persistence",
+      "target_profile": "persistence",
+      "fixture_dir": "synthetic-persistence",
+      "expected_tier_phase3": "tier2",
+      "expected_confidence_phase3": "Strong Heuristic",
+      "must_not_trigger_tier1": true,
+      "signals_emulated": [
+        "custom_rest_namespace",
+        "ajax_handlers",
+        "remote_requests"
+      ],
+      "gate_blocking": false
+    },
+    {
+      "slug": "synthetic-stealth",
+      "target_profile": "stealth",
+      "fixture_dir": "synthetic-stealth",
+      "expected_tier_phase3": "tier2",
+      "expected_confidence_phase3": "Strong Heuristic",
+      "must_not_trigger_tier1": true,
+      "signals_emulated": [
+        "custom_rest_namespace",
+        "dynamic_script_registration"
+      ],
+      "gate_blocking": false
+    }
+  ]
+}

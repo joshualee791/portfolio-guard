@@ -56,3 +56,6 @@ $RECYCLE.BIN/
 
 # Release validation workspaces
 _release_validation/
+
+# Staged clean plugin corpus (populated by stage-clean-corpus.ps1)
+validation/corpus/clean-plugins/*/

@@ -1,0 +1,46 @@
+{
+  "schema_version": "1",
+  "staging_required_before_gate": true,
+  "entries": [
+    {
+      "plugin_slug": "contact-form-7",
+      "version": "5.9.8",
+      "source_url": "https://downloads.wordpress.org/plugin/contact-form-7.5.9.8.zip",
+      "sha256_zip": "",
+      "fixture_dir": "contact-form-7-5.9.8",
+      "notes": "High AJAX usage, email processing — stress-tests ajax_handlers heuristic"
+    },
+    {
+      "plugin_slug": "classic-editor",
+      "version": "1.6.5",
+      "source_url": "https://downloads.wordpress.org/plugin/classic-editor.1.6.5.zip",
+      "sha256_zip": "",
+      "fixture_dir": "classic-editor-1.6.5",
+      "notes": "Minimal signals — baseline false-positive check for a simple plugin"
+    },
+    {
+      "plugin_slug": "updraftplus",
+      "version": "1.24.4",
+      "source_url": "https://downloads.wordpress.org/plugin/updraftplus.1.24.4.zip",
+      "sha256_zip": "",
+      "fixture_dir": "updraftplus-1.24.4",
+      "notes": "Remote requests (wp_remote_get) and AJAX — tests remote_requests and ajax_handlers heuristics"
+    },
+    {
+      "plugin_slug": "wp-mail-smtp",
+      "version": "4.1.0",
+      "source_url": "https://downloads.wordpress.org/plugin/wp-mail-smtp.4.1.0.zip",
+      "sha256_zip": "",
+      "fixture_dir": "wp-mail-smtp-4.1.0",
+      "notes": "Remote requests, cookie handling — tests cookie_manipulation and remote_requests heuristics"
+    },
+    {
+      "plugin_slug": "mainwp-child",
+      "version": "4.6.8",
+      "source_url": "https://downloads.wordpress.org/plugin/mainwp-child.4.6.8.zip",
+      "sha256_zip": "",
+      "fixture_dir": "mainwp-child-4.6.8",
+      "notes": "On protected_plugin_slugs list; remote management capabilities — highest heuristic exposure in corpus"
+    }
+  ]
+}
