@@ -13,7 +13,7 @@
         "custom_rest_namespace",
         "remote_requests"
       ],
-      "gate_blocking": false
+      "gate_blocking": true
     },
     {
       "slug": "synthetic-payload-delivery",
@@ -26,7 +26,7 @@
         "suspicious_remote_javascript",
         "dynamic_script_registration"
       ],
-      "gate_blocking": false
+      "gate_blocking": true
     },
     {
       "slug": "synthetic-operator-access",
@@ -39,7 +39,7 @@
         "cookie_manipulation",
         "ajax_handlers"
       ],
-      "gate_blocking": false
+      "gate_blocking": true
     },
     {
       "slug": "synthetic-persistence",
@@ -53,7 +53,7 @@
         "ajax_handlers",
         "remote_requests"
       ],
-      "gate_blocking": false
+      "gate_blocking": true
     },
     {
       "slug": "synthetic-stealth",
@@ -66,7 +66,7 @@
         "custom_rest_namespace",
         "dynamic_script_registration"
       ],
-      "gate_blocking": false
+      "gate_blocking": true
     }
   ]
 }

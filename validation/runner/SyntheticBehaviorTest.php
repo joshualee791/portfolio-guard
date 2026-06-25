@@ -108,19 +108,40 @@ class SyntheticBehaviorTest
 
         $tier2Achieved = ($analysis !== null && $analysis['tier'] === 'tier2');
 
-        $this->cleanup($pluginDir);
-
-        // Assertion 3 (conditional blocking): Tier 2 detection
-        if ($entry['gate_blocking'] && !$tier2Achieved) {
-            $actual = $analysis ? $analysis['tier'] : 'null';
-            return array('status' => 'fail', 'message' => 'expected tier2, got ' . $actual);
-        }
-
+        // Assertion 3 (conditional blocking): detect() returns tier2
         if (!$tier2Achieved) {
+            $this->cleanup($pluginDir);
             $actual = $analysis ? $analysis['tier'] : 'null';
-            return array('status' => 'warn', 'message' => 'expected tier2, got ' . $actual);
+            if ($entry['gate_blocking']) {
+                return array('status' => 'fail', 'message' => 'expected tier2 from detect(), got ' . $actual);
+            }
+            return array('status' => 'warn', 'message' => 'expected tier2, got ' . $actual . ' (non-blocking)');
         }
 
+        // Assertions 4 and 5 (blocking when gate_blocking=true): Spec 004 §9.5
+        // run_scan() places the detection in review_required with REVIEW_REQUIRED_IDENTIFIED
+        if ($entry['gate_blocking']) {
+            $GLOBALS['msp_pg_test_transients']         = array();
+            $GLOBALS['msp_pg_test_deactivated_plugins'] = array();
+            $report    = MSP_PG_Remediator::run_scan('gate');
+            $detection = null;
+            foreach ($report['review_required'] as $d) {
+                if ($d['plugin_slug'] === $slug) {
+                    $detection = $d;
+                    break;
+                }
+            }
+            if ($detection === null) {
+                $this->cleanup($pluginDir);
+                return array('status' => 'fail', 'message' => $slug . ' not found in review_required after run_scan');
+            }
+            if (!in_array('REVIEW_REQUIRED_IDENTIFIED', $detection['actions'], true)) {
+                $this->cleanup($pluginDir);
+                return array('status' => 'fail', 'message' => 'REVIEW_REQUIRED_IDENTIFIED missing from action codes for ' . $slug);
+            }
+        }
+
+        $this->cleanup($pluginDir);
         return array('status' => 'pass', 'message' => '');
     }
 
