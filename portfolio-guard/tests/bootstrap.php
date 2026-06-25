@@ -4,6 +4,17 @@ if (!defined('ABSPATH')) {
     define('ABSPATH', __DIR__ . '/');
 }
 
+if (!defined('MSP_PG_PLUGIN_FILE')) {
+    define('MSP_PG_PLUGIN_FILE', dirname(__DIR__) . DIRECTORY_SEPARATOR . 'portfolio-guard.php');
+}
+
+if (!function_exists('plugin_dir_path')) {
+    function plugin_dir_path($file)
+    {
+        return trailingslashit(dirname($file));
+    }
+}
+
 if (!defined('MINUTE_IN_SECONDS')) {
     define('MINUTE_IN_SECONDS', 60);
 }

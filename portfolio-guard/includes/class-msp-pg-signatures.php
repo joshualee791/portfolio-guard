@@ -6,172 +6,33 @@ if (!defined('ABSPATH')) {
 
 class MSP_PG_Signatures
 {
+    private static $registry    = null;
+    private static $registry_ok = false;
+
+    // -------------------------------------------------------------------------
+    // Registry availability
+    // -------------------------------------------------------------------------
+
+    public static function registry_available()
+    {
+        if (self::$registry === null) {
+            self::load();
+        }
+        return self::$registry_ok;
+    }
+
+    // -------------------------------------------------------------------------
+    // Public accessors (interface unchanged)
+    // -------------------------------------------------------------------------
+
     public static function family()
     {
+        if (self::$registry === null) {
+            self::load();
+        }
         return array(
-            'family' => MSP_PG_Config::family_name(),
-            'variants' => array(
-                'laravel-janet' => array(
-                    'slug' => 'laravel-janet',
-                    'main_file' => 'laravel-janet.php',
-                    'hashes' => array(
-                        '9B39B460C148C7177834C48A4B1C3D7FCB7C3A7BE9A4984857E8140B41E8FA17',
-                        'D6213E5FF2903B65DC52C35749F74ABCD2437A432528A11078E25095E7949903',
-                    ),
-                    'domains' => array('opertoraza.com'),
-                    'routes' => array(),
-                    'backdoors' => array(
-                        array(
-                            'id_param' => 'triapplicational_unimicroservicesion',
-                            'token_param' => 'projavascriptsion_applicational',
-                            'token_value' => '3hSf3XbHc93vvhTHlhwPEmbYUT94MBas',
-                        ),
-                    ),
-                    'ioc_strings' => array(
-                        'fastreactic_nanomicroserviceing',
-                        'tridatation_quicktypescriptal',
-                        'wqugu3/s1wwptag.php',
-                    ),
-                ),
-                'framework-triappment' => array(
-                    'slug' => 'framework-triappment',
-                    'main_file' => 'framework-triappment.php',
-                    'hashes' => array(
-                        '94CB502F90FB51F152EC85557FED6E8AD90B70544496BF478C06625A367E114E',
-                        '5C89B40B7C22112CEC4718BAAA9E6687869F7CDF1CCC89F3846863BC1D53914A',
-                    ),
-                    'domains' => array('juioprtexi.com'),
-                    'routes' => array('framework-triappment-xk30rc/v1'),
-                    'backdoors' => array(
-                        array(
-                            'id_param' => 'microvueity_supercloudment',
-                            'token_param' => 'micromicroserviceor_service',
-                            'token_value' => 'JTMtIqkCSDDR3DnRt87r0cfs6176BQDp',
-                        ),
-                    ),
-                    'ioc_strings' => array(
-                        'framework-triappment-xk30rc/v1',
-                        'data-ph-pid',
-                        'yhwb11/d5wffaqd.php',
-                    ),
-                ),
-                'platformist-quadendpointer' => array(
-                    'slug' => 'platformist-quadendpointer',
-                    'main_file' => 'platformist-quadendpointer.php',
-                    'hashes' => array(
-                        '3B748449290AD21806C864139A5583A8A0F1FB39D99F01CFD67568796B6081B4',
-                        'CD13A26D7E26C788A6B0C2304196BC6A9794728AF2334DE0DD2B67CFA283F536',
-                    ),
-                    'domains' => array('kiloporotolimo.com'),
-                    'routes' => array('platformist-quadendpointer-sxadtr/v1'),
-                    'backdoors' => array(
-                        array(
-                            'id_param' => 'ultraapping_provueive',
-                            'token_param' => 'automicroserviceic_fastapplicational',
-                            'token_value' => 'fS1YMEltDz1Elm9NzdQs3pOHTta3ypIr',
-                        ),
-                    ),
-                    'ioc_strings' => array(
-                        'platformist-quadendpointer-sxadtr/v1',
-                        'data-ph-pid',
-                        '3paddm/5auul2bn.php',
-                    ),
-                ),
-                'smartrestal-serverful' => array(
-                    'slug' => 'smartrestal-serverful',
-                    'main_file' => 'smartrestal-serverful.php',
-                    'hashes' => array(
-                        'B0F24ED45B2F9048AE1E14065F30CB1C534786ACC81DAC74FA98F0917F783341',
-                        'D8FDFFD8074B2E371D479E2E56D0F91E89BABAC8AADBBE5118CA5C62D2AA3344',
-                    ),
-                    'domains' => array('opertoraza.com'),
-                    'routes' => array(),
-                    'backdoors' => array(
-                        array(
-                            'id_param' => 'maxservice_automicroserviceist',
-                            'token_param' => 'nanoserviceism_quickangularor',
-                            'token_value' => 'MpoJjsJx8KtQfybFePKBRyFV1B1Mjkkj',
-                        ),
-                    ),
-                    'ioc_strings' => array(
-                        '1ch325/1xjh0u6z.php',
-                        'template_redirect',
-                        'fastreactic_nanomicroserviceing',
-                    ),
-                ),
-                'uniserviceist-multiinfrastructure' => array(
-                    'slug' => 'uniserviceist-multiinfrastructure',
-                    'main_file' => 'uniserviceist-multiinfrastructure.php',
-                    'hashes' => array(),
-                    'domains' => array(),
-                    'routes' => array(),
-                    'backdoors' => array(),
-                    'ioc_strings' => array(
-                        'uniserviceist-multiinfrastructure.php',
-                    ),
-                ),
-                'miniapplicationing-protypescriptic' => array(
-                    'slug' => 'miniapplicationing-protypescriptic',
-                    'main_file' => 'miniapplicationing-protypescriptic.php',
-                    'hashes' => array(),
-                    'domains' => array(),
-                    'routes' => array(),
-                    'backdoors' => array(),
-                    'ioc_strings' => array(
-                        'miniapplicationing-protypescriptic.php',
-                    ),
-                ),
-                'these-middleware' => array(
-                    'slug' => 'these-middleware',
-                    'main_file' => 'these-middleware.php',
-                    'hashes' => array(),
-                    'domains' => array(),
-                    'routes' => array(),
-                    'backdoors' => array(),
-                    'ioc_strings' => array(
-                        'these-middleware.php',
-                    ),
-                ),
-                'macrolayer-macroflag' => array(
-                    'slug' => 'macrolayer-macroflag',
-                    'main_file' => 'macrolayer-macroflag.php',
-                    'hashes' => array(
-                        '782155B2EFFB65E5FA9DC61A3FE5FDA00DC85E10D134CEF295D1D4AFD4CDE979',
-                        'AA8D562C458C2B672DEFAE29549FED424CEEABCFF5A54D65ED97F05BF463E4B2',
-                        '6ED7B9973096FEA7AAC56DF5A52F0083F274234AB8228624F665C6BE074AE5CB',
-                        'F2091D12D60116283DD1B911A07500F9F31D0A9337BE1B55675AFE8D57D469BB',
-                        'B7B969FA8F79172EBECA9AF4F9297AEA138F7D795FBCDFEE99707ED41CAF3905',
-                        '838B77A16D51EF256D84EF7AD0E74B6E13078BDA80D6B8EE4288288E4060EC3F',
-                        '184602C92C67FB52E6E5EFCCF867F263766854F226A509F4CF77395E2BEB8E74',
-                        'F0BB36D00322514C84204448DD0D0A791478390B67914E51A8A46EB712BC16F2',
-                        'E004F800ECFD942334F6813CD91DBFFAE13ABB50FB699934DE466041CF1D5123',
-                        'DCF329F240A919A9EB4CDB50CD54CA0C19C0EBEA558D533B3546311A09A43976',
-                        '43A7BE8205FB247EBBCBD66803564CBE4795CC3A9C59B798848F7ED523DB099B',
-                        'A01409A673418A35660B4041260BE3A0F546E999383EBEF176F11CA2C8FC6DC2',
-                        '324C27F3CF8932FCB6A487F00A3AF59142FEA6C64433FBDD8D79DCA226059E95',
-                        '48DE25ED74CDBF9D114462A0DF9AC22F9C776F0631B195C46CEE5B83957DF591',
-                    ),
-                    'domains' => array(
-                        'grojechootiosta.com',
-                        'dosiofioko.com',
-                    ),
-                    'routes' => array(
-                        'macrolayer-macroflag-3c6a523036d2/v1',
-                    ),
-                    'backdoors' => array(),
-                    'ioc_strings' => array(
-                        'data-ph-pid',
-                        'cookie_bootstrap_9eae098c',
-                        'cookie_ttl_16636943',
-                        'cookie_click_a17ab164',
-                        'update_stage_3c774ec8',
-                        'validate_c7ab6222',
-                        'bootstrap_a6e34ef6',
-                        '1f49a175f17da6bedd4ab7d3',
-                        '419b98e5fb04',
-                    ),
-                ),
-            ),
+            'family'   => MSP_PG_Config::family_name(),
+            'variants' => self::$registry_ok ? self::$registry['variants'] : array(),
         );
     }
 
@@ -183,118 +44,135 @@ class MSP_PG_Signatures
     public static function known_hashes()
     {
         $hashes = array();
-
         foreach (self::family()['variants'] as $variant) {
             foreach ($variant['hashes'] as $hash) {
                 $hashes[strtoupper($hash)] = $variant['slug'];
             }
         }
-
         return $hashes;
     }
 
     public static function route_namespaces()
     {
-        return array(
-            'framework-triappment-xk30rc/v1',
-            'platformist-quadendpointer-sxadtr/v1',
-            'macrolayer-macroflag-3c6a523036d2/v1',
-        );
+        $routes = array();
+        foreach (self::family()['variants'] as $variant) {
+            foreach ($variant['routes'] as $route) {
+                if ($route !== '') {
+                    $routes[] = $route;
+                }
+            }
+        }
+        return $routes;
     }
 
     public static function backdoor_pairs()
     {
         $pairs = array();
-
         foreach (self::family()['variants'] as $variant) {
             foreach ($variant['backdoors'] as $backdoor) {
                 $pairs[] = array_merge($backdoor, array('slug' => $variant['slug']));
             }
         }
-
         return $pairs;
     }
 
     public static function exact_ioc_strings()
     {
-        return array(
-            'wqugu3/s1wwptag.php',
-            'yhwb11/d5wffaqd.php',
-            '3paddm/5auul2bn.php',
-            '1ch325/1xjh0u6z.php',
-            'cookie_bootstrap_9eae098c',
-            'cookie_ttl_16636943',
-            'cookie_click_a17ab164',
-            'update_stage_3c774ec8',
-            'validate_c7ab6222',
-            'bootstrap_a6e34ef6',
-            '1f49a175f17da6bedd4ab7d3',
-            '419b98e5fb04',
-        );
-    }
-
-    public static function heuristic_markers()
-    {
-        return array(
-            'auth' => array(
-                'wp_set_auth_cookie(',
-                'wp_safe_redirect(',
-                '/wp-admin',
-            ),
-            'network' => array(
-                '/api/config/',
-                '/api/click',
-                'wp_remote_request(',
-                'data-ph-pid',
-            ),
-            'shared' => array(
-                "add_filter('all_plugins'",
-                "add_action('template_redirect'",
-                "permission_callback' => '__return_true'",
-                'fastreactic_nanomicroserviceing',
-                'tridatation_quicktypescriptal',
-            ),
-        );
+        if (self::$registry === null) {
+            self::load();
+        }
+        return self::$registry_ok ? self::$registry['exact_ioc_strings'] : array();
     }
 
     public static function known_domains()
     {
-        return array(
-            'opertoraza.com',
-            'juioprtexi.com',
-            'kiloporotolimo.com',
-            'grojechootiosta.com',
-            'dosiofioko.com',
-        );
+        $domains = array();
+        foreach (self::family()['variants'] as $variant) {
+            foreach ($variant['domains'] as $domain) {
+                $domains[] = $domain;
+            }
+        }
+        return $domains;
     }
 
     public static function known_relative_filenames()
     {
-        return array(
-            'wqugu3/s1wwptag.php',
-            'yhwb11/d5wffaqd.php',
-            '3paddm/5auul2bn.php',
-            '1ch325/1xjh0u6z.php',
-        );
+        $filenames = array();
+        foreach (self::family()['variants'] as $variant) {
+            foreach ($variant['ioc_strings'] as $string) {
+                if (preg_match('/^[a-z0-9]{4,8}\/[a-z0-9]{6,10}\.php$/i', $string)) {
+                    $filenames[] = $string;
+                }
+            }
+        }
+        return $filenames;
     }
 
     public static function known_primary_plugin_files()
     {
         $files = array();
-
         foreach (self::family()['variants'] as $variant) {
             if (!empty($variant['main_file'])) {
                 $files[$variant['main_file']] = $variant['slug'];
             }
         }
-
         return $files;
     }
 
     public static function variant_by_slug($slug)
     {
         $variants = self::family()['variants'];
-
         return isset($variants[$slug]) ? $variants[$slug] : null;
+    }
+
+    // -------------------------------------------------------------------------
+    // Registry loading (private)
+    // -------------------------------------------------------------------------
+
+    private static function load()
+    {
+        $path = defined('MSP_PG_PLUGIN_FILE')
+            ? plugin_dir_path(MSP_PG_PLUGIN_FILE) . 'data/signatures.json'
+            : '';
+
+        if ($path === '') {
+            error_log('MSP Portfolio Guard: MSP_PG_PLUGIN_FILE is not defined — cannot locate signature registry');
+            return;
+        }
+
+        if (!file_exists($path)) {
+            error_log('MSP Portfolio Guard: signature registry not found at ' . $path);
+            return;
+        }
+
+        $raw = @file_get_contents($path);
+        if ($raw === false) {
+            error_log('MSP Portfolio Guard: could not read signature registry at ' . $path);
+            return;
+        }
+
+        $data = json_decode($raw, true);
+        if (!is_array($data)) {
+            error_log('MSP Portfolio Guard: signature registry JSON decode failed at ' . $path);
+            return;
+        }
+
+        if (!isset($data['schema_version']) || $data['schema_version'] !== 1) {
+            error_log('MSP Portfolio Guard: unsupported signature registry schema_version at ' . $path);
+            return;
+        }
+
+        if (!isset($data['variants']) || !is_array($data['variants'])) {
+            error_log('MSP Portfolio Guard: signature registry missing variants at ' . $path);
+            return;
+        }
+
+        if (!isset($data['exact_ioc_strings']) || !is_array($data['exact_ioc_strings'])) {
+            error_log('MSP Portfolio Guard: signature registry missing exact_ioc_strings at ' . $path);
+            return;
+        }
+
+        self::$registry    = $data;
+        self::$registry_ok = true;
     }
 }
