@@ -621,7 +621,7 @@ class MSP_PG_Remediator
 
     private static function scan_directory($siteSlug, $scanTimestamp)
     {
-        $normalizedTimestamp = preg_replace('/[^0-9TZ:-]/', '-', $scanTimestamp);
+        $normalizedTimestamp = preg_replace('/[^0-9TZ-]/', '-', $scanTimestamp);
 
         return MSP_PG_Utils::join_paths(
             MSP_PG_Config::artifact_base_dir(),

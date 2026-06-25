@@ -36,10 +36,10 @@
     },
     {
       "plugin_slug": "mainwp-child",
-      "version": "4.6.8",
-      "source_url": "https://downloads.wordpress.org/plugin/mainwp-child.4.6.8.zip",
+      "version": "4.6",
+      "source_url": "https://downloads.wordpress.org/plugin/mainwp-child.4.6.zip",
       "sha256_zip": "",
-      "fixture_dir": "mainwp-child-4.6.8",
+      "fixture_dir": "mainwp-child-4.6",
       "notes": "On protected_plugin_slugs list; remote management capabilities — highest heuristic exposure in corpus"
     }
   ]
