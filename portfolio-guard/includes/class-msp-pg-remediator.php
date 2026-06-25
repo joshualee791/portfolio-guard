@@ -21,8 +21,6 @@ class MSP_PG_Remediator
         $state = get_option(MSP_PG_Config::state_option_name(), array());
         $scanTimestamp = gmdate('c');
         $siteMeta = self::site_metadata();
-        $safeMode = MSP_PG_Config::safe_mode();
-        $allowTier1Remediation = MSP_PG_Config::allow_tier1_remediation();
         $evidenceRetentionMode = MSP_PG_Config::evidence_retention_mode();
         $dryRun = !empty($args['dry_run']) || MSP_PG_Config::default_dry_run();
         $cleanup = self::cleanup_expired_artifacts($dryRun, $evidenceRetentionMode);
@@ -49,7 +47,7 @@ class MSP_PG_Remediator
                 }
             }
 
-            $detections[] = self::remediate_detection($analysis, $siteMeta, $scanDir, $safeMode, $allowTier1Remediation, $dryRun);
+            $detections[] = self::remediate_detection($analysis, $siteMeta, $scanDir, $dryRun);
         }
 
         $tierCounts = array(
@@ -70,8 +68,6 @@ class MSP_PG_Remediator
             'site_slug' => $siteMeta['site_slug'],
             'scan_timestamp' => $scanTimestamp,
             'trigger' => $trigger,
-            'safe_mode' => $safeMode,
-            'allow_tier1_remediation' => $allowTier1Remediation,
             'evidence_retention_mode' => $evidenceRetentionMode,
             'dry_run' => $dryRun,
             'cleanup' => $cleanup,
@@ -106,14 +102,14 @@ class MSP_PG_Remediator
         return $scanReport;
     }
 
-    private static function remediate_detection($analysis, $siteMeta, $scanDir, $safeMode, $allowTier1Remediation, $dryRun)
+    private static function remediate_detection($analysis, $siteMeta, $scanDir, $dryRun)
     {
         $actions = array();
         $errors = array();
         $warnings = array();
         $activePlugins = self::matching_active_plugins($analysis['plugin_slug']);
         $reportOnly = $analysis['tier'] !== 'tier1';
-        $shouldModify = !$reportOnly && !$dryRun && (!$safeMode || $allowTier1Remediation);
+        $shouldModify = !$reportOnly && !$dryRun;
         $bundleEligible = in_array($analysis['tier'], array('tier1', 'tier2'), true);
         $canDeleteOriginal = in_array('known_hash', $analysis['exact_match_types'], true) || count($analysis['exact_match_types']) >= 2;
         $evidenceMode = MSP_PG_Config::evidence_retention_mode();
@@ -150,12 +146,6 @@ class MSP_PG_Remediator
 
         if ($reportOnly) {
             $actions[] = 'REPORT_ONLY_NO_CHANGES';
-        }
-
-        if ($safeMode && $allowTier1Remediation && !$reportOnly) {
-            $actions[] = 'TIER1_OVERRIDE_ENABLED';
-        } elseif ($safeMode && !$reportOnly) {
-            $actions[] = 'SAFE_MODE_ENABLED';
         }
 
         if ($dryRun) {
@@ -217,8 +207,6 @@ class MSP_PG_Remediator
                 'detection_tier' => $analysis['tier'],
                 'score' => $analysis['score'],
                 'reasons' => $analysis['reasons'],
-                'safe_mode' => $safeMode,
-                'allow_tier1_remediation' => $allowTier1Remediation,
                 'dry_run' => $dryRun,
                 'site_url' => $siteMeta['site_url'],
                 'detection_timestamp' => gmdate('c'),
@@ -471,8 +459,6 @@ class MSP_PG_Remediator
             'Site: ' . $scanReport['site_url'],
             'Timestamp: ' . $scanReport['scan_timestamp'],
             'Trigger: ' . $scanReport['trigger'],
-            'Safe mode: ' . ($scanReport['safe_mode'] ? 'enabled' : 'disabled'),
-            'Tier 1 override: ' . ($scanReport['allow_tier1_remediation'] ? 'enabled' : 'disabled'),
             'Evidence retention mode: ' . $scanReport['evidence_retention_mode'],
             'Dry run: ' . ($scanReport['dry_run'] ? 'enabled' : 'disabled'),
             'Detections: ' . count($scanReport['detections']),

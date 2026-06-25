@@ -30,9 +30,6 @@ class MSP_PG_Plugin
     {
         update_option(MSP_PG_Config::pending_activation_option_name(), gmdate('c'), false);
         update_option('msp_pg_version', MSP_PG_VERSION, false);
-        if (get_option(MSP_PG_Config::tier1_override_option_name(), null) === null) {
-            add_option(MSP_PG_Config::tier1_override_option_name(), true, '', false);
-        }
     }
 
     public static function deactivate()
@@ -48,7 +45,7 @@ class MSP_PG_Plugin
         delete_option(MSP_PG_Config::state_option_name());
         delete_option(MSP_PG_Config::pending_activation_option_name());
         delete_option(MSP_PG_Config::setup_notice_option_name());
-        delete_option(MSP_PG_Config::tier1_override_option_name());
+        delete_option('msp_pg_allow_tier1_remediation');
         delete_option('msp_pg_version');
         delete_transient(MSP_PG_Config::scan_lock_key());
         delete_transient(MSP_PG_Config::catchup_lock_key());
@@ -91,10 +88,6 @@ class MSP_PG_Plugin
 
     public function maybe_complete_setup()
     {
-        if (get_option(MSP_PG_Config::tier1_override_option_name(), null) === null) {
-            add_option(MSP_PG_Config::tier1_override_option_name(), true, '', false);
-        }
-
         $installedVersion = get_option('msp_pg_version');
 
         if ($installedVersion !== MSP_PG_VERSION) {
@@ -197,10 +190,7 @@ class MSP_PG_Plugin
 
     private static function clear_scan_schedule()
     {
-        $timestamp = wp_next_scheduled(MSP_PG_Config::cron_hook());
-        if ($timestamp) {
-            wp_unschedule_event($timestamp, MSP_PG_Config::cron_hook());
-        }
+        wp_clear_scheduled_hook(MSP_PG_Config::cron_hook());
     }
 
     private static function ensure_mu_loader()

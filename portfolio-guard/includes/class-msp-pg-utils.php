@@ -251,8 +251,6 @@ class MSP_PG_Utils
         $lines[] = '- Site URL: `' . $scanReport['site_url'] . '`';
         $lines[] = '- Scan timestamp: `' . $scanReport['scan_timestamp'] . '`';
         $lines[] = '- Trigger: `' . $scanReport['trigger'] . '`';
-        $lines[] = '- Safe mode: `' . ($scanReport['safe_mode'] ? 'enabled' : 'disabled') . '`';
-        $lines[] = '- Tier 1 override: `' . ($scanReport['allow_tier1_remediation'] ? 'enabled' : 'disabled') . '`';
         $lines[] = '- Evidence retention mode: `' . $scanReport['evidence_retention_mode'] . '`';
         $lines[] = '- Dry run: `' . ($scanReport['dry_run'] ? 'enabled' : 'disabled') . '`';
         $lines[] = '- Detections: `' . count($scanReport['detections']) . '`';
@@ -310,8 +308,6 @@ class MSP_PG_Utils
             'Site: ' . $scanReport['site_url'],
             'Timestamp: ' . $scanReport['scan_timestamp'],
             'Trigger: ' . $scanReport['trigger'],
-            'Safe Mode: ' . ($scanReport['safe_mode'] ? 'Enabled' : 'Disabled'),
-            'Tier 1 Override: ' . ($scanReport['allow_tier1_remediation'] ? 'Enabled' : 'Disabled'),
             'Evidence Retention Mode: ' . $scanReport['evidence_retention_mode'],
             'Dry Run: ' . ($scanReport['dry_run'] ? 'Enabled' : 'Disabled'),
         );
@@ -437,8 +433,6 @@ class MSP_PG_Utils
         $html .= '<p>Site: <strong>' . self::html_escape($scanReport['site_url']) . '</strong><br>';
         $html .= 'Timestamp: <strong>' . self::html_escape($scanReport['scan_timestamp']) . '</strong><br>';
         $html .= 'Trigger: <strong>' . self::html_escape($scanReport['trigger']) . '</strong><br>';
-        $html .= 'Safe Mode: <strong>' . self::html_escape($scanReport['safe_mode'] ? 'Enabled' : 'Disabled') . '</strong><br>';
-        $html .= 'Tier 1 Override: <strong>' . self::html_escape($scanReport['allow_tier1_remediation'] ? 'Enabled' : 'Disabled') . '</strong><br>';
         $html .= 'Evidence Retention Mode: <strong>' . self::html_escape($scanReport['evidence_retention_mode']) . '</strong></p>';
         if (!empty($scanReport['cleanup'])) {
             $html .= '<p><strong>Retention cleanup:</strong> ' . self::html_escape(self::cleanup_summary($scanReport['cleanup'])) . '</p>';
@@ -450,8 +444,6 @@ class MSP_PG_Utils
                 array($badge('#dcfce7', '#166534', 'Confirmed Malware'), self::html_escape($confirmedCount)),
                 array($badge('#fef9c3', '#854d0e', 'Heuristic Findings'), self::html_escape($heuristicCount)),
                 array($badge('#fee2e2', '#991b1b', 'Interesting Findings'), self::html_escape($interestingCount)),
-                array(self::html_escape('Safe Mode'), self::html_escape($scanReport['safe_mode'] ? 'Enabled' : 'Disabled')),
-                array(self::html_escape('Tier 1 Override'), self::html_escape($scanReport['allow_tier1_remediation'] ? 'Enabled' : 'Disabled')),
                 array(self::html_escape('Evidence Retention Mode'), self::html_escape($scanReport['evidence_retention_mode'])),
                 array(self::html_escape('Remediated'), self::html_escape($remediated)),
                 array(self::html_escape('Would Remediate'), self::html_escape($wouldRemediate)),
@@ -509,8 +501,6 @@ class MSP_PG_Utils
     {
         $map = array(
             'REPORT_ONLY_NO_CHANGES' => 'Reported only; no site changes made',
-            'SAFE_MODE_ENABLED' => 'Safe mode prevented automatic remediation',
-            'TIER1_OVERRIDE_ENABLED' => 'Tier 1 override allowed confirmed malware remediation while safe mode remained enabled',
             'DRY_RUN_ENABLED' => 'Dry run simulated all actions',
             'PROTECTED_PLUGIN_REPORT_ONLY' => 'Protected plugin kept in report-only mode',
             'CONFIRMED_MALWARE_IDENTIFIED' => 'Confirmed malware identified',

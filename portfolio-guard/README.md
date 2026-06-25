@@ -61,8 +61,6 @@
 - `msp_pg_artifact_base_dir`
 - `msp_pg_scan_interval`
 - `msp_pg_delete_tier1_enabled`
-- `msp_pg_safe_mode`
-- `msp_pg_allow_tier1_remediation`
 - `msp_pg_default_dry_run`
 - `msp_pg_signature_version`
 - `msp_pg_heuristic_version`
