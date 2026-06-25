@@ -18,6 +18,7 @@ define('MSP_PG_PLUGIN_BASENAME', plugin_basename(__FILE__));
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-config.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-signatures.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-utils.php';
+require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-feature-extractor.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-detector.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-runtime.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-remediator.php';
