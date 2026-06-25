@@ -49,15 +49,6 @@ class MSP_PG_Config
         return (bool) apply_filters('msp_pg_delete_tier1_enabled', true);
     }
 
-    public static function safe_mode()
-    {
-        if (defined('PORTFOLIO_GUARD_SAFE_MODE')) {
-            return (bool) PORTFOLIO_GUARD_SAFE_MODE;
-        }
-
-        return (bool) apply_filters('msp_pg_safe_mode', true);
-    }
-
     public static function default_dry_run()
     {
         if (defined('PORTFOLIO_GUARD_DRY_RUN')) {
@@ -65,23 +56,6 @@ class MSP_PG_Config
         }
 
         return (bool) apply_filters('msp_pg_default_dry_run', false);
-    }
-
-    public static function allow_tier1_remediation()
-    {
-        if (defined('PORTFOLIO_GUARD_ALLOW_TIER1_REMEDIATION')) {
-            return (bool) PORTFOLIO_GUARD_ALLOW_TIER1_REMEDIATION;
-        }
-
-        $stored = get_option(self::tier1_override_option_name(), null);
-        $default = is_null($stored) ? false : (bool) $stored;
-
-        return (bool) apply_filters('msp_pg_allow_tier1_remediation', $default);
-    }
-
-    public static function tier1_override_option_name()
-    {
-        return 'msp_pg_allow_tier1_remediation';
     }
 
     public static function signature_version()

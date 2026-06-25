@@ -42,7 +42,6 @@ class SignatureRegistryTest
         }
 
         $GLOBALS['msp_pg_test_options'] = array(
-            MSP_PG_Config::tier1_override_option_name() => true,
             'active_plugins' => array_map(function ($slug) {
                 return $slug . '/' . $slug . '.php';
             }, $families),
@@ -89,6 +88,16 @@ class SignatureRegistryTest
         }
 
         $this->assertSame(4, count($GLOBALS['msp_pg_test_deactivated_plugins']), 'All four tracked families should be deactivated');
+
+        $this->assertFalse(array_key_exists('safe_mode', $report), 'Scan report must not contain safe_mode field');
+        $this->assertFalse(array_key_exists('allow_tier1_remediation', $report), 'Scan report must not contain allow_tier1_remediation field');
+
+        foreach ($families as $slug) {
+            $detection = $this->findDetection($report['confirmed_malware'], $slug);
+            $this->assertTrue(in_array('LIVE_PLUGIN_REMOVED', $detection['actions'], true), $slug . ': LIVE_PLUGIN_REMOVED requires BUNDLE_VERIFIED to have preceded it');
+            $this->assertTrue(in_array('BUNDLE_VERIFIED', $detection['actions'], true), $slug . ': evidence invariant — BUNDLE_VERIFIED must accompany LIVE_PLUGIN_REMOVED');
+            $this->assertTrue(file_exists($detection['artifact_dir'] . DIRECTORY_SEPARATOR . 'evidence.json'), $slug . ': evidence invariant — evidence.json must exist when LIVE_PLUGIN_REMOVED is recorded');
+        }
 
         $this->cleanup($this->workspace);
     }

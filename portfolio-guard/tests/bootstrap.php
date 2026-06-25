@@ -184,6 +184,13 @@ if (!function_exists('deactivate_plugins')) {
     }
 }
 
+if (!function_exists('wp_clear_scheduled_hook')) {
+    function wp_clear_scheduled_hook($hook)
+    {
+        return 0;
+    }
+}
+
 if (!function_exists('wp_mail')) {
     function wp_mail($to, $subject, $message)
     {
