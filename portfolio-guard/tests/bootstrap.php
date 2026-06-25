@@ -21,6 +21,12 @@ $GLOBALS['msp_pg_test_transients'] = array();
 $GLOBALS['msp_pg_test_deactivated_plugins'] = array();
 $GLOBALS['msp_pg_test_filters'] = array();
 $GLOBALS['msp_pg_test_uploads_base'] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'msp-pg-test-uploads';
+$GLOBALS['msp_pg_test_scheduled_events'] = array();
+$GLOBALS['msp_pg_test_current_time'] = null;
+
+if (!defined('MSP_PG_VERSION')) {
+    define('MSP_PG_VERSION', '1.5.6');
+}
 
 if (!function_exists('apply_filters')) {
     function apply_filters($tag, $value)
@@ -101,7 +107,11 @@ if (!function_exists('wp_get_schedules')) {
         return array(
             'hourly' => array(
                 'interval' => HOUR_IN_SECONDS,
-                'display' => 'Hourly',
+                'display'  => 'Hourly',
+            ),
+            'daily' => array(
+                'interval' => DAY_IN_SECONDS,
+                'display'  => 'Daily',
             ),
         );
     }
@@ -184,9 +194,70 @@ if (!function_exists('deactivate_plugins')) {
     }
 }
 
+if (!function_exists('add_action')) {
+    function add_action($tag, $callback, $priority = 10, $acceptedArgs = 1)
+    {
+        return add_filter($tag, $callback, $priority, $acceptedArgs);
+    }
+}
+
+if (!function_exists('do_action')) {
+    function do_action($tag)
+    {
+        // no-op in test context
+    }
+}
+
+if (!function_exists('is_admin')) {
+    function is_admin()
+    {
+        return true;
+    }
+}
+
+if (!function_exists('current_user_can')) {
+    function current_user_can($capability)
+    {
+        return true;
+    }
+}
+
+if (!function_exists('wp_schedule_event')) {
+    function wp_schedule_event($timestamp, $recurrence, $hook, $args = array(), $wp_error = false)
+    {
+        $GLOBALS['msp_pg_test_scheduled_events'][$hook] = array(
+            'timestamp'  => (int) $timestamp,
+            'recurrence' => $recurrence,
+        );
+        return true;
+    }
+}
+
+if (!function_exists('wp_schedule_single_event')) {
+    function wp_schedule_single_event($timestamp, $hook, $args = array(), $wp_error = false)
+    {
+        $GLOBALS['msp_pg_test_scheduled_events'][$hook] = array(
+            'timestamp'  => (int) $timestamp,
+            'recurrence' => 'single',
+        );
+        return true;
+    }
+}
+
+if (!function_exists('wp_next_scheduled')) {
+    function wp_next_scheduled($hook, $args = array())
+    {
+        if (isset($GLOBALS['msp_pg_test_scheduled_events'][$hook])) {
+            return $GLOBALS['msp_pg_test_scheduled_events'][$hook]['timestamp'];
+        }
+        return false;
+    }
+}
+
 if (!function_exists('wp_clear_scheduled_hook')) {
     function wp_clear_scheduled_hook($hook)
     {
+        unset($GLOBALS['msp_pg_test_scheduled_events'][$hook]);
         return 0;
     }
 }
