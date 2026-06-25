@@ -173,13 +173,9 @@ class MSP_PG_Remediator
             $hashes = MSP_PG_Utils::hash_directory($livePluginDir);
         }
 
-        // Behavioral extraction and classification for Tier 2 (Spec 005 §12.1)
-        $behaviorProfiles = array();
-        if ($analysis['tier'] === 'tier2' && $bundleEligible) {
-            $behaviorProfiles = MSP_PG_BehaviorClassifier::classify(
-                MSP_PG_FeatureExtractor::extract($livePluginDir)
-            );
-        }
+        // Behavior profiles are determined by the detector and carried through the
+        // analysis array (Spec 005 §12.1). No recomputation needed here.
+        $behaviorProfiles = !empty($analysis['behavior_profiles']) ? $analysis['behavior_profiles'] : array();
 
         if ($bundleEligible && $dryRun && !$reportOnly) {
             $actions[] = 'WOULD_EVIDENCE_MANIFEST_CREATE';

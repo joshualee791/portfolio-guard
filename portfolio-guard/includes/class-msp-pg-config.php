@@ -172,14 +172,6 @@ class MSP_PG_Config
         ));
     }
 
-    public static function score_thresholds()
-    {
-        return apply_filters('msp_pg_score_thresholds', array(
-            'tier2' => 100,
-            'tier3' => 20,
-        ));
-    }
-
     public static function artifact_retention_days()
     {
         return (int) apply_filters('msp_pg_artifact_retention_days', 7);

@@ -12,9 +12,7 @@ class MSP_PG_Detector
         $variant = MSP_PG_Signatures::variant_by_slug($slug);
         $knownHashes = MSP_PG_Signatures::known_hashes();
         $knownPrimaryPluginFiles = MSP_PG_Signatures::known_primary_plugin_files();
-        $heuristics = MSP_PG_Signatures::heuristic_markers();
         $weights = MSP_PG_Config::score_weights();
-        $thresholds = MSP_PG_Config::score_thresholds();
         $structure = MSP_PG_Utils::random_payload_structure($pluginDir);
 
         $analysis = array(
@@ -39,6 +37,7 @@ class MSP_PG_Detector
             'variant_hash' => '',
             'detection_source' => '',
             'protected_plugin' => in_array($slug, MSP_PG_Config::protected_plugin_slugs(), true),
+            'behavior_profiles' => array(),
         );
 
         foreach ($structure as $bucket => $values) {
@@ -200,19 +199,24 @@ class MSP_PG_Detector
 
         if ($exact) {
             $analysis['tier'] = 'tier1';
-        } elseif ($analysis['score'] >= $thresholds['tier2']) {
-            $analysis['tier'] = 'tier2';
-        } elseif ($analysis['score'] >= $thresholds['tier3']) {
-            $analysis['tier'] = 'tier3';
         } else {
-            return null;
+            // Profile-based Tier 2 classification (Spec 005 §5.3, roadmap §3.3)
+            // Replaces additive heuristic scoring as the Tier 2 decision mechanism.
+            $profiles = MSP_PG_BehaviorClassifier::classify(
+                MSP_PG_FeatureExtractor::extract($pluginDir)
+            );
+            if (empty($profiles)) {
+                return null;
+            }
+            $analysis['tier']             = 'tier2';
+            $analysis['behavior_profiles'] = $profiles;
         }
 
         $analysis['exact_match_types'] = MSP_PG_Utils::normalize_list($analysis['exact_match_types']);
         $analysis['matched_indicators'] = MSP_PG_Utils::normalize_list($analysis['matched_indicators']);
-        $analysis['confidence'] = $analysis['tier'] === 'tier1' ? 'Exact Match' : ($analysis['tier'] === 'tier2' ? 'Strong Heuristic' : 'Interesting');
-        $analysis['detection_source'] = $analysis['tier'] === 'tier1' ? 'Built-In Signature Registry' : 'Behavioral / Heuristic Analysis';
-        $analysis['variant_hash'] = self::variant_hash($analysis);
+        $analysis['confidence']         = $analysis['tier'] === 'tier1' ? 'Exact Match' : 'Strong Heuristic';
+        $analysis['detection_source']   = $analysis['tier'] === 'tier1' ? 'Built-In Signature Registry' : 'Behavioral / Heuristic Analysis';
+        $analysis['variant_hash']       = self::variant_hash($analysis);
 
         return $analysis;
     }
