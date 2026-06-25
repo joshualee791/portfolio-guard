@@ -60,35 +60,44 @@ class MSP_PG_BehaviorClassifier
                 return $has('HP-01') || $has('HP-02');
 
             case 'command-and-control':
-                // Known C2 strings are unambiguous — any single one activates.
-                // Generic signals (FC-01, FC-02, CB-01) require corroboration:
-                //   REST + outbound = inbound command, outbound callback
-                //   REST + anonymous access = unauthenticated control surface
-                // FC-01 or FC-02 alone would fire on many legitimate plugins.
+                // Family-specific SM strings are unambiguous — any single one activates.
+                // Generic FC signals (REST routes, outbound HTTP) appear in many legitimate
+                // plugins and are not sufficient corroboration without a family-specific marker.
                 foreach (array('SM-01', 'SM-02', 'SM-03', 'SM-04', 'SM-05', 'KB-02') as $smId) {
                     if ($has($smId)) {
                         return true;
                     }
                 }
-                return ($has('FC-01') && $has('FC-02'))
-                    || ($has('FC-01') && $has('CB-01'));
+                return false;
 
             case 'payload-delivery':
-                // DM-01 (createElement in PHP output) and SP-01 (random payload dirs)
-                // are specific enough to activate alone.
-                return $has('DM-01') || $has('SP-01');
+                // DM-01 (createElement in PHP output) is specific enough to activate alone.
+                // SP-01 (short alphanumeric directory with 8-char PHP file) matches too many
+                // legitimate vendor directories; require a corroborating family-specific marker.
+                if ($has('DM-01')) {
+                    return true;
+                }
+                if ($has('SP-01')) {
+                    foreach (array('SM-01', 'SM-02', 'SM-03', 'SM-04', 'SM-05', 'KB-02') as $smId) {
+                        if ($has($smId)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
 
             case 'operator-access':
-                // KB-01 (backdoor triplet) and FC-03 (wp_set_auth_cookie) are
-                // strong, specific indicators that activate alone.
-                return $has('FC-03') || $has('KB-01');
+                // KB-01 (known backdoor triplet) activates alone — it is family-specific.
+                // FC-03 (wp_set_auth_cookie) is used legitimately by remote management and
+                // backup plugins; require FC-04 (raw setcookie) as corroboration, which
+                // represents the token-write step of an impersonation flow.
+                return $has('KB-01') || ($has('FC-03') && $has('FC-04'));
 
             case 'stealth':
-                // HP-01 (hiding from plugin list) is unambiguous.
-                // CB-01 alone is insufficient; combined with FC-01 it creates a
-                // control surface with no authentication trace — a stealth pattern.
-                return $has('HP-01')
-                    || ($has('CB-01') && $has('FC-01'));
+                // HP-01 (hiding from plugin list) is unambiguous and activates alone.
+                // CB-01 + FC-01 (anonymous REST endpoint) is too broad — many legitimate
+                // plugins expose unauthenticated endpoints without stealth intent.
+                return $has('HP-01');
         }
 
         return false;
