@@ -68,7 +68,6 @@ class MSP_PG_Plugin
 
         $state = get_option(MSP_PG_Config::state_option_name(), array());
         $lastScan = isset($state['last_scan_at']) ? strtotime($state['last_scan_at']) : 0;
-        $interval = MSP_PG_Config::interval_seconds();
         $pendingActivation = get_option(MSP_PG_Config::pending_activation_option_name());
 
         if (!empty($pendingActivation)) {
@@ -77,7 +76,7 @@ class MSP_PG_Plugin
             return;
         }
 
-        if ($lastScan > 0 && (time() - $lastScan) < $interval) {
+        if ($lastScan > 0 && (time() - $lastScan) < 23 * HOUR_IN_SECONDS) {
             return;
         }
 
@@ -92,6 +91,8 @@ class MSP_PG_Plugin
 
         if ($installedVersion !== MSP_PG_VERSION) {
             update_option('msp_pg_version', MSP_PG_VERSION, false);
+            self::clear_scan_schedule();
+            self::schedule_scan();
         }
 
         if ($this->has_setup_completed()) {
@@ -147,30 +148,19 @@ class MSP_PG_Plugin
         $hook = MSP_PG_Config::cron_hook();
 
         if (wp_next_scheduled($hook)) {
-            return array(
-                'ok' => true,
-                'message' => '',
-            );
+            return array('ok' => true, 'message' => '');
         }
 
-        $recurrence = MSP_PG_Config::scan_interval();
-        $schedules = wp_get_schedules();
-        if (!isset($schedules[$recurrence])) {
-            $recurrence = 'hourly';
-        }
-
-        $scheduled = wp_schedule_event(time() + MINUTE_IN_SECONDS, $recurrence, $hook, array(), true);
+        $timestamp = self::next_6am_timestamp();
+        $scheduled = wp_schedule_event($timestamp, 'daily', $hook, array(), true);
         if ($scheduled === true || wp_next_scheduled($hook)) {
-            return array(
-                'ok' => true,
-                'message' => '',
-            );
+            return array('ok' => true, 'message' => '');
         }
 
         $fallback = wp_schedule_single_event(time() + (5 * MINUTE_IN_SECONDS), $hook, array(), true);
         if ($fallback === true || wp_next_scheduled($hook)) {
             return array(
-                'ok' => true,
+                'ok'      => true,
                 'message' => 'Recurring scan could not be registered; using fallback scheduling and admin catch-up scans.',
             );
         }
@@ -182,10 +172,57 @@ class MSP_PG_Plugin
             $errorMessage .= ' ' . $fallback->get_error_message();
         }
 
-        return array(
-            'ok' => false,
-            'message' => $errorMessage,
-        );
+        return array('ok' => false, 'message' => $errorMessage);
+    }
+
+    private static function next_6am_timestamp()
+    {
+        $now = isset($GLOBALS['msp_pg_test_current_time'])
+            ? (int) $GLOBALS['msp_pg_test_current_time']
+            : time();
+
+        $timezone = self::site_timezone();
+        $nowDt    = new DateTime('@' . $now);
+        $nowDt->setTimezone($timezone);
+
+        $target = clone $nowDt;
+        $target->setTime(6, 0, 0);
+
+        if ($nowDt >= $target) {
+            $target->modify('+1 day');
+        }
+
+        return (int) $target->format('U');
+    }
+
+    private static function site_timezone()
+    {
+        $tzString = (string) get_option('timezone_string', '');
+
+        if ($tzString !== '') {
+            try {
+                return new DateTimeZone($tzString);
+            } catch (Exception $e) {
+                // fall through to offset-based resolution
+            }
+        }
+
+        $gmtOffset = (float) get_option('gmt_offset', 0);
+
+        if ($gmtOffset !== 0.0) {
+            $sign      = $gmtOffset >= 0 ? '+' : '-';
+            $absOffset = abs($gmtOffset);
+            $hours     = (int) $absOffset;
+            $minutes   = (int) round(($absOffset - $hours) * 60);
+
+            try {
+                return new DateTimeZone(sprintf('UTC%s%02d:%02d', $sign, $hours, $minutes));
+            } catch (Exception $e) {
+                // fall through to UTC
+            }
+        }
+
+        return new DateTimeZone('UTC');
     }
 
     private static function clear_scan_schedule()

@@ -39,11 +39,6 @@ class MSP_PG_Config
         return 'msp_pg_catchup_lock';
     }
 
-    public static function scan_interval()
-    {
-        return apply_filters('msp_pg_scan_interval', 'hourly');
-    }
-
     public static function delete_tier1_enabled()
     {
         return (bool) apply_filters('msp_pg_delete_tier1_enabled', true);
@@ -118,18 +113,6 @@ class MSP_PG_Config
         }
 
         return $slug;
-    }
-
-    public static function interval_seconds()
-    {
-        $schedules = wp_get_schedules();
-        $interval = self::scan_interval();
-
-        if (isset($schedules[$interval]['interval'])) {
-            return (int) $schedules[$interval]['interval'];
-        }
-
-        return HOUR_IN_SECONDS;
     }
 
     public static function mu_loader_filename()
