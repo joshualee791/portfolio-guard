@@ -173,6 +173,14 @@ class MSP_PG_Remediator
             $hashes = MSP_PG_Utils::hash_directory($livePluginDir);
         }
 
+        // Behavioral extraction and classification for Tier 2 (Spec 005 §12.1)
+        $behaviorProfiles = array();
+        if ($analysis['tier'] === 'tier2' && $bundleEligible) {
+            $behaviorProfiles = MSP_PG_BehaviorClassifier::classify(
+                MSP_PG_FeatureExtractor::extract($livePluginDir)
+            );
+        }
+
         if ($bundleEligible && $dryRun && !$reportOnly) {
             $actions[] = 'WOULD_EVIDENCE_MANIFEST_CREATE';
             if ($evidenceMode === 'compressed_archive') {
@@ -187,40 +195,49 @@ class MSP_PG_Remediator
 
         if ($bundleEligible) {
             $manifest = array(
-                'family' => MSP_PG_Config::family_name(),
-                'classification' => $analysis['tier'] === 'tier1' ? 'Confirmed Malware' : 'Review Required',
-                'tier' => strtoupper($analysis['tier']),
-                'confidence' => $analysis['confidence'],
-                'source' => $analysis['detection_source'],
-                'action' => $shouldModify ? 'Pending Remediation' : 'Reported',
-                'detected_at' => gmdate('c'),
-                'plugin_slug' => $analysis['plugin_slug'],
-                'file_count' => $fileCount,
-                'directory_count' => $directoryCount,
-                'total_bytes' => $totalBytes,
+                'family'                       => MSP_PG_Config::family_name(),
+                'classification'               => $analysis['tier'] === 'tier1' ? 'Confirmed Malware' : 'Review Required',
+                'tier'                         => strtoupper($analysis['tier']),
+                'confidence'                   => $analysis['confidence'],
+                'source'                       => $analysis['detection_source'],
+                'action'                       => $shouldModify ? 'Pending Remediation' : 'Reported',
+                'detected_at'                  => gmdate('c'),
+                'plugin_slug'                  => $analysis['plugin_slug'],
+                'file_count'                   => $fileCount,
+                'directory_count'              => $directoryCount,
+                'total_bytes'                  => $totalBytes,
                 'sha256_directory_fingerprint' => $directoryFingerprint,
-                'evidence_retention_mode' => $effectiveEvidenceMode,
-                'variant_fingerprint' => $analysis['variant_hash'],
-                'score' => $analysis['score'],
-                'reasons' => $analysis['reasons'],
-                'dry_run' => $dryRun,
-                'site_url' => $siteMeta['site_url'],
-                'wordpress_version' => $siteMeta['wordpress_version'],
-                'php_version' => $siteMeta['php_version'],
-                'active_plugins' => $siteMeta['active_plugins'],
-                'active_theme' => $siteMeta['active_theme'],
-                'protected_plugin' => $analysis['protected_plugin'],
-                'exact_match_types' => $analysis['exact_match_types'],
-                'matched_indicators' => $analysis['matched_indicators'],
-                'payload_hashes' => $analysis['payload_hashes'],
-                'hashes' => $hashes,
-                'domains' => $analysis['domains'],
-                'routes' => $analysis['routes'],
-                'backdoor_indicators' => $analysis['backdoor_indicators'],
-                'structural_indicators' => $analysis['structural_indicators'],
-                'signature_version' => MSP_PG_Config::signature_version(),
-                'heuristic_version' => MSP_PG_Config::heuristic_version(),
+                'evidence_retention_mode'      => $effectiveEvidenceMode,
+                'variant_fingerprint'          => $analysis['variant_hash'],
+                'dry_run'                      => $dryRun,
+                'site_url'                     => $siteMeta['site_url'],
+                'wordpress_version'            => $siteMeta['wordpress_version'],
+                'php_version'                  => $siteMeta['php_version'],
+                'active_plugins'               => $siteMeta['active_plugins'],
+                'active_theme'                 => $siteMeta['active_theme'],
+                'protected_plugin'             => $analysis['protected_plugin'],
+                'exact_match_types'            => $analysis['exact_match_types'],
+                'matched_indicators'           => $analysis['matched_indicators'],
+                'payload_hashes'               => $analysis['payload_hashes'],
+                'hashes'                       => $hashes,
+                'domains'                      => $analysis['domains'],
+                'routes'                       => $analysis['routes'],
+                'backdoor_indicators'          => $analysis['backdoor_indicators'],
+                'structural_indicators'        => $analysis['structural_indicators'],
+                'signature_version'            => MSP_PG_Config::signature_version(),
+                'heuristic_version'            => MSP_PG_Config::heuristic_version(),
             );
+
+            // Tier-specific evidence fields (Spec 005 §11.3, §12.1)
+            // Tier 1: score and reasons represent the strength of exact-match evidence
+            // Tier 2: behavior_profiles replace heuristic scores in operator-facing output
+            if ($analysis['tier'] === 'tier1') {
+                $manifest['score']             = $analysis['score'];
+                $manifest['reasons']           = $analysis['reasons'];
+                $manifest['behavior_profiles'] = array();
+            } else {
+                $manifest['behavior_profiles'] = $behaviorProfiles;
+            }
 
             $artifactReport = array(
                 'plugin_slug' => $analysis['plugin_slug'],
@@ -242,8 +259,9 @@ class MSP_PG_Remediator
                 'errors' => $errors,
                 'warnings' => $warnings,
                 'protected_plugin' => $analysis['protected_plugin'],
-                'variant_hash' => $analysis['variant_hash'],
-                'known_variant' => $analysis['known_variant'],
+                'variant_hash'      => $analysis['variant_hash'],
+                'known_variant'     => $analysis['known_variant'],
+                'behavior_profiles' => $behaviorProfiles,
             );
 
             if (!$dryRun && $shouldModify && $evidenceMode === 'compressed_archive') {
@@ -391,13 +409,16 @@ class MSP_PG_Remediator
             'warnings' => $warnings,
             'protected_plugin' => $analysis['protected_plugin'],
             'preservation_verified' => $preservationVerified,
-            'bundle_eligible' => $bundleEligible,
+            'bundle_eligible'       => $bundleEligible,
             'evidence_retention_mode' => $effectiveEvidenceMode,
+            'behavior_profiles'     => $behaviorProfiles,
         );
     }
 
     private static function artifact_markdown($artifactReport, $manifest)
     {
+        $isTier2 = $artifactReport['tier'] === 'tier2';
+
         $lines = array(
             '# Artifact Report',
             '',
@@ -405,24 +426,34 @@ class MSP_PG_Remediator
             '- Tier: `' . $artifactReport['tier'] . '`',
             '- Protected plugin: `' . ($artifactReport['protected_plugin'] ? 'yes' : 'no') . '`',
             '- Evidence mode: `' . $artifactReport['evidence_retention_mode'] . '`',
-            '- Score: `' . $artifactReport['score'] . '`',
             '- Confidence: `' . $artifactReport['confidence'] . '`',
             '- Source: `' . $artifactReport['source'] . '`',
             '- Remediation status: `' . $manifest['remediation_status'] . '`',
-            '- Variant fingerprint: `' . $artifactReport['variant_hash'] . '`',
-            '- Evidence manifest: `' . $artifactReport['evidence_manifest_path'] . '`',
-            '- Evidence archive: `' . (!empty($artifactReport['zip_path']) ? $artifactReport['zip_path'] : 'n/a') . '`',
-            '- File count: `' . $artifactReport['file_count'] . '`',
-            '- Directory count: `' . $artifactReport['directory_count'] . '`',
-            '- Total bytes: `' . $artifactReport['total_bytes'] . '`',
-            '- Directory fingerprint: `' . $artifactReport['sha256_directory_fingerprint'] . '`',
-            '- Actions: `' . implode(', ', $artifactReport['actions']) . '`',
-            '- Exact matches: `' . implode(', ', $artifactReport['exact_match_types']) . '`',
-            '- Matched indicators: `' . implode(', ', $artifactReport['matched_indicators']) . '`',
-            '- Reasons: `' . implode(', ', $artifactReport['reason_labels']) . '`',
-            '- Domains: `' . implode(', ', $manifest['domains']) . '`',
-            '- Routes: `' . implode(', ', $manifest['routes']) . '`',
         );
+
+        // Tier-specific evidence representation (Spec 005 §11.3)
+        if (!$isTier2) {
+            $lines[] = '- Score: `' . $artifactReport['score'] . '`';
+            $lines[] = '- Reasons: `' . implode(', ', $artifactReport['reason_labels']) . '`';
+        } elseif (!empty($manifest['behavior_profiles'])) {
+            $lines[] = '- Behavior Profiles:';
+            foreach ($manifest['behavior_profiles'] as $profile) {
+                $lines[] = '  - **' . $profile['profile_label'] . ':** ' . $profile['summary'];
+            }
+        }
+
+        $lines[] = '- Variant fingerprint: `' . $artifactReport['variant_hash'] . '`';
+        $lines[] = '- Evidence manifest: `' . $artifactReport['evidence_manifest_path'] . '`';
+        $lines[] = '- Evidence archive: `' . (!empty($artifactReport['zip_path']) ? $artifactReport['zip_path'] : 'n/a') . '`';
+        $lines[] = '- File count: `' . $artifactReport['file_count'] . '`';
+        $lines[] = '- Directory count: `' . $artifactReport['directory_count'] . '`';
+        $lines[] = '- Total bytes: `' . $artifactReport['total_bytes'] . '`';
+        $lines[] = '- Directory fingerprint: `' . $artifactReport['sha256_directory_fingerprint'] . '`';
+        $lines[] = '- Actions: `' . implode(', ', $artifactReport['actions']) . '`';
+        $lines[] = '- Exact matches: `' . implode(', ', $artifactReport['exact_match_types']) . '`';
+        $lines[] = '- Matched indicators: `' . implode(', ', $artifactReport['matched_indicators']) . '`';
+        $lines[] = '- Domains: `' . implode(', ', $manifest['domains']) . '`';
+        $lines[] = '- Routes: `' . implode(', ', $manifest['routes']) . '`';
 
         return implode("\n", $lines) . "\n";
     }
