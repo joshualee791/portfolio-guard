@@ -14,6 +14,18 @@ class MSP_PG_Remediator
 
         set_transient(MSP_PG_Config::scan_lock_key(), 1, 15 * MINUTE_IN_SECONDS);
 
+        if (!MSP_PG_Signatures::registry_available()) {
+            $errorMessage = 'MSP Portfolio Guard: scan aborted — signature registry unavailable on ' . get_site_url() . '. Check portfolio-guard/data/signatures.json.';
+            error_log($errorMessage);
+            wp_mail(
+                MSP_PG_Config::report_recipient(),
+                '[MSP Portfolio Guard] Scan aborted — signature registry unavailable',
+                $errorMessage
+            );
+            delete_transient(MSP_PG_Config::scan_lock_key());
+            return array('registry_error' => true, 'trigger' => $trigger);
+        }
+
         if (!function_exists('deactivate_plugins')) {
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
         }
@@ -609,7 +621,7 @@ class MSP_PG_Remediator
 
     private static function scan_directory($siteSlug, $scanTimestamp)
     {
-        $normalizedTimestamp = preg_replace('/[^0-9TZ:-]/', '-', $scanTimestamp);
+        $normalizedTimestamp = preg_replace('/[^0-9TZ-]/', '-', $scanTimestamp);
 
         return MSP_PG_Utils::join_paths(
             MSP_PG_Config::artifact_base_dir(),

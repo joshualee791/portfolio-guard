@@ -87,7 +87,13 @@ class MSP_PG_FeatureExtractor
             }
 
             // String-based signals: one observation per (signal_id, file) pair
+            // DM-01 is only meaningful in PHP output context; skip it for JS/other files
+            // to avoid false positives from bundled JS libraries (e.g. jQuery).
+            $phpOnly = array('DM-01');
             foreach ($stringDefs as $signalId => $def) {
+                if (in_array($signalId, $phpOnly, true) && $extension !== 'php') {
+                    continue;
+                }
                 $dedupKey = $signalId . ':' . $relative;
                 if (isset($seen[$dedupKey])) {
                     continue;
