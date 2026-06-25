@@ -260,8 +260,7 @@ class MSP_PG_Utils
         $lines[] = '';
         $groups = array(
             'confirmed_malware' => 'Confirmed Malware',
-            'heuristic_findings' => 'Heuristic Findings',
-            'interesting_findings' => 'Interesting Findings',
+            'review_required' => 'Review Required',
         );
         foreach ($groups as $key => $label) {
             if (empty($scanReport[$key])) {
@@ -317,14 +316,12 @@ class MSP_PG_Utils
         $lines[] = '';
         $lines[] = 'Executive Summary';
         $lines[] = 'Confirmed Malware: ' . count($scanReport['confirmed_malware']);
-        $lines[] = 'Heuristic Findings: ' . count($scanReport['heuristic_findings']);
-        $lines[] = 'Interesting Findings: ' . count($scanReport['interesting_findings']);
+        $lines[] = 'Review Required: ' . count($scanReport['review_required']);
         $lines[] = 'Remediated: ' . $summary['remediated'];
         $lines[] = 'Would Remediate: ' . $summary['would_remediate'];
         $sections = array(
             'confirmed_malware' => 'Confirmed Malware',
-            'heuristic_findings' => 'Heuristic Findings',
-            'interesting_findings' => 'Interesting Findings',
+            'review_required' => 'Review Required',
         );
         foreach ($sections as $key => $label) {
             $lines[] = '';
@@ -369,8 +366,7 @@ class MSP_PG_Utils
     public static function html_report($scanReport)
     {
         $confirmedCount = count($scanReport['confirmed_malware']);
-        $heuristicCount = count($scanReport['heuristic_findings']);
-        $interestingCount = count($scanReport['interesting_findings']);
+        $reviewRequiredCount = count($scanReport['review_required']);
         $summary = self::scan_summary_counts($scanReport);
         $remediated = $summary['remediated'];
         $wouldRemediate = $summary['would_remediate'];
@@ -442,8 +438,7 @@ class MSP_PG_Utils
             array('Metric', 'Value'),
             array(
                 array($badge('#dcfce7', '#166534', 'Confirmed Malware'), self::html_escape($confirmedCount)),
-                array($badge('#fef9c3', '#854d0e', 'Heuristic Findings'), self::html_escape($heuristicCount)),
-                array($badge('#fee2e2', '#991b1b', 'Interesting Findings'), self::html_escape($interestingCount)),
+                array($badge('#fef9c3', '#854d0e', 'Review Required'), self::html_escape($reviewRequiredCount)),
                 array(self::html_escape('Evidence Retention Mode'), self::html_escape($scanReport['evidence_retention_mode'])),
                 array(self::html_escape('Remediated'), self::html_escape($remediated)),
                 array(self::html_escape('Would Remediate'), self::html_escape($wouldRemediate)),
@@ -464,7 +459,7 @@ class MSP_PG_Utils
                 );
             }, $scanReport['confirmed_malware'])
         );
-        $html .= '<h2>Heuristic Findings</h2>';
+        $html .= '<h2>Review Required</h2>';
         $html .= $renderTable(
             array('Plugin', 'Tier', 'Score', 'Action', 'Reasons'),
             array_map(function ($detection) {
@@ -475,20 +470,7 @@ class MSP_PG_Utils
                     self::html_escape(implode('; ', $detection['action_descriptions'])),
                     self::html_escape(implode(', ', $detection['reason_labels'])),
                 );
-            }, $scanReport['heuristic_findings'])
-        );
-        $html .= '<h2>Interesting Findings</h2>';
-        $html .= $renderTable(
-            array('Plugin', 'Tier', 'Score', 'Action', 'Reasons'),
-            array_map(function ($detection) {
-                return array(
-                    self::html_escape($detection['plugin_slug']),
-                    self::html_escape(strtoupper($detection['tier'])),
-                    self::html_escape($detection['score']),
-                    self::html_escape(implode('; ', $detection['action_descriptions'])),
-                    self::html_escape(implode(', ', $detection['reason_labels'])),
-                );
-            }, $scanReport['interesting_findings'])
+            }, $scanReport['review_required'])
         );
         $html .= '<h2>Evidence Status</h2>';
         $html .= $renderTable(array('Artifact', 'Status'), $evidenceRows);
@@ -504,17 +486,15 @@ class MSP_PG_Utils
             'DRY_RUN_ENABLED' => 'Dry run simulated all actions',
             'PROTECTED_PLUGIN_REPORT_ONLY' => 'Protected plugin kept in report-only mode',
             'CONFIRMED_MALWARE_IDENTIFIED' => 'Confirmed malware identified',
-            'HEURISTIC_FINDING_IDENTIFIED' => 'Heuristic finding identified',
-            'INTERESTING_FINDING_IDENTIFIED' => 'Interesting finding identified',
+            'REVIEW_REQUIRED_IDENTIFIED' => 'Review Required finding identified',
             'PLUGIN_DEACTIVATED' => 'Plugin deactivated before remediation',
             'EVIDENCE_MANIFEST_CREATED' => 'Evidence manifest created',
             'EVIDENCE_ARCHIVE_CREATED' => 'Compressed evidence archive created',
             'FULL_ARTIFACT_SNAPSHOT_CREATED' => 'Full artifact snapshot created',
             'BUNDLE_VERIFIED' => 'Evidence bundle verified',
-            'QUARANTINE_COMPLETED' => 'Temporary quarantine completed',
+            'QUARANTINE_COMPLETED' => 'Plugin moved to persistent quarantine directory',
             'LIVE_PLUGIN_REMOVED' => 'Live plugin directory removed',
-            'HEURISTIC_REPORT_ONLY' => 'Heuristic finding reported only',
-            'INTERESTING_REPORT_ONLY' => 'Interesting finding reported only',
+            'REVIEW_REQUIRED_REPORT_ONLY' => 'Review Required finding reported; no site changes',
             'WOULD_PLUGIN_DEACTIVATE' => 'Would deactivate active plugin',
             'WOULD_EVIDENCE_MANIFEST_CREATE' => 'Would create evidence manifest',
             'WOULD_EVIDENCE_ARCHIVE_CREATE' => 'Would create compressed evidence archive',

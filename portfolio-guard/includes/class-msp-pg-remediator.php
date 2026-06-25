@@ -36,7 +36,7 @@ class MSP_PG_Remediator
             }
 
             $analysis = MSP_PG_Detector::detect($pluginDir);
-            if ($analysis === null) {
+            if ($analysis === null || $analysis['tier'] === 'tier3') {
                 continue;
             }
 
@@ -53,7 +53,6 @@ class MSP_PG_Remediator
         $tierCounts = array(
             'tier1' => 0,
             'tier2' => 0,
-            'tier3' => 0,
         );
 
         foreach ($detections as $detection) {
@@ -76,8 +75,7 @@ class MSP_PG_Remediator
             'tier_counts' => $tierCounts,
             'detections' => $detections,
             'confirmed_malware' => array_values(array_filter($detections, function ($detection) { return $detection['tier'] === 'tier1'; })),
-            'heuristic_findings' => array_values(array_filter($detections, function ($detection) { return $detection['tier'] === 'tier2'; })),
-            'interesting_findings' => array_values(array_filter($detections, function ($detection) { return $detection['tier'] === 'tier3'; })),
+            'review_required' => array_values(array_filter($detections, function ($detection) { return $detection['tier'] === 'tier2'; })),
             'errors' => $errors,
             'wordpress_version' => $siteMeta['wordpress_version'],
             'php_version' => $siteMeta['php_version'],
@@ -113,6 +111,7 @@ class MSP_PG_Remediator
         $bundleEligible = in_array($analysis['tier'], array('tier1', 'tier2'), true);
         $canDeleteOriginal = in_array('known_hash', $analysis['exact_match_types'], true) || count($analysis['exact_match_types']) >= 2;
         $evidenceMode = MSP_PG_Config::evidence_retention_mode();
+        $effectiveEvidenceMode = $analysis['tier'] === 'tier2' ? 'metadata_only' : $evidenceMode;
         $artifactDir = $bundleEligible ? MSP_PG_Utils::join_paths($scanDir, 'artifacts', $analysis['plugin_slug']) : '';
         $quarantineDir = $bundleEligible ? MSP_PG_Utils::join_paths($artifactDir, 'quarantine', $analysis['plugin_slug']) : '';
         $snapshotDir = $bundleEligible ? MSP_PG_Utils::join_paths($artifactDir, 'snapshot', $analysis['plugin_slug']) : '';
@@ -135,9 +134,7 @@ class MSP_PG_Remediator
         if ($analysis['tier'] === 'tier1') {
             $actions[] = 'CONFIRMED_MALWARE_IDENTIFIED';
         } elseif ($analysis['tier'] === 'tier2') {
-            $actions[] = 'HEURISTIC_FINDING_IDENTIFIED';
-        } elseif ($analysis['tier'] === 'tier3') {
-            $actions[] = 'INTERESTING_FINDING_IDENTIFIED';
+            $actions[] = 'REVIEW_REQUIRED_IDENTIFIED';
         }
 
         if (!empty($activePlugins)) {
@@ -190,8 +187,8 @@ class MSP_PG_Remediator
 
         if ($bundleEligible) {
             $manifest = array(
-                'family' => $analysis['plugin_slug'],
-                'classification' => $analysis['tier'] === 'tier1' ? 'Confirmed Malware' : ($analysis['tier'] === 'tier2' ? 'Heuristic Finding' : 'Interesting Finding'),
+                'family' => MSP_PG_Config::family_name(),
+                'classification' => $analysis['tier'] === 'tier1' ? 'Confirmed Malware' : 'Review Required',
                 'tier' => strtoupper($analysis['tier']),
                 'confidence' => $analysis['confidence'],
                 'source' => $analysis['detection_source'],
@@ -202,19 +199,16 @@ class MSP_PG_Remediator
                 'directory_count' => $directoryCount,
                 'total_bytes' => $totalBytes,
                 'sha256_directory_fingerprint' => $directoryFingerprint,
-                'evidence_retention_mode' => $evidenceMode,
+                'evidence_retention_mode' => $effectiveEvidenceMode,
                 'variant_fingerprint' => $analysis['variant_hash'],
-                'detection_tier' => $analysis['tier'],
                 'score' => $analysis['score'],
                 'reasons' => $analysis['reasons'],
                 'dry_run' => $dryRun,
                 'site_url' => $siteMeta['site_url'],
-                'detection_timestamp' => gmdate('c'),
                 'wordpress_version' => $siteMeta['wordpress_version'],
                 'php_version' => $siteMeta['php_version'],
                 'active_plugins' => $siteMeta['active_plugins'],
                 'active_theme' => $siteMeta['active_theme'],
-                'plugin_slug' => $analysis['plugin_slug'],
                 'protected_plugin' => $analysis['protected_plugin'],
                 'exact_match_types' => $analysis['exact_match_types'],
                 'matched_indicators' => $analysis['matched_indicators'],
@@ -231,12 +225,12 @@ class MSP_PG_Remediator
             $artifactReport = array(
                 'plugin_slug' => $analysis['plugin_slug'],
                 'live_path' => $analysis['plugin_dir'],
-                'quarantine_path' => ($evidenceMode === 'full_artifact_retention') ? $quarantineDir : '',
-                'snapshot_path' => ($evidenceMode === 'full_artifact_retention') ? $snapshotDir : '',
+                'quarantine_path' => $effectiveEvidenceMode === 'full_artifact_retention' ? $quarantineDir : '',
+                'snapshot_path' => $effectiveEvidenceMode === 'full_artifact_retention' ? $snapshotDir : '',
                 'artifact_dir' => $artifactDir,
                 'evidence_manifest_path' => $manifestPath,
-                'zip_path' => (($evidenceMode === 'compressed_archive' || $evidenceMode === 'full_artifact_retention') ? $zipPath : ''),
-                'evidence_retention_mode' => $evidenceMode,
+                'zip_path' => ($effectiveEvidenceMode === 'compressed_archive' || $effectiveEvidenceMode === 'full_artifact_retention') ? $zipPath : '',
+                'evidence_retention_mode' => $effectiveEvidenceMode,
                 'tier' => $analysis['tier'],
                 'score' => $analysis['score'],
                 'confidence' => $analysis['confidence'],
@@ -281,7 +275,7 @@ class MSP_PG_Remediator
             $preReportOk = !$dryRun ? MSP_PG_Utils::write_json($reportPath, $artifactReport) : true;
             $preMarkdownOk = !$dryRun ? MSP_PG_Utils::write_text($markdownPath, self::artifact_markdown($artifactReport, $manifest)) : true;
             $preTextOk = !$dryRun ? MSP_PG_Utils::write_text($textPath, self::artifact_markdown($artifactReport, $manifest)) : true;
-            $zipOk = $dryRun ? true : (($evidenceMode === 'compressed_archive' || $evidenceMode === 'full_artifact_retention') ? $evidenceArchiveCreated && is_readable($zipPath) : true);
+            $zipOk = $dryRun ? true : (($effectiveEvidenceMode === 'compressed_archive' || $effectiveEvidenceMode === 'full_artifact_retention') ? $evidenceArchiveCreated && is_readable($zipPath) : true);
             $preservationVerified = $dryRun
                 ? false
                 : ($manifestOk && $preReportOk && $preMarkdownOk && $preTextOk
@@ -314,22 +308,17 @@ class MSP_PG_Remediator
 
                     $moved = MSP_PG_Utils::move_directory($livePluginDir, $temporaryQuarantineDir);
                     if ($moved) {
-                        $actions[] = 'QUARANTINE_COMPLETED';
                         self::delete_directory($temporaryQuarantineDir);
                         $actions[] = 'LIVE_PLUGIN_REMOVED';
                     } else {
-                        $errors[] = 'Failed to move plugin directory into temporary quarantine after verified preservation.';
+                        $errors[] = 'Failed to remove live plugin directory after verified evidence preservation.';
                     }
                 }
             }
         }
 
         if ($analysis['tier'] === 'tier2') {
-            $actions[] = 'HEURISTIC_REPORT_ONLY';
-        }
-
-        if ($analysis['tier'] === 'tier3') {
-            $actions[] = 'INTERESTING_REPORT_ONLY';
+            $actions[] = 'REVIEW_REQUIRED_REPORT_ONLY';
         }
 
         if ($dryRun && $analysis['tier'] === 'tier1') {
@@ -345,10 +334,10 @@ class MSP_PG_Remediator
                 $manifest['remediation_status'] = 'Quarantined';
             } elseif ($analysis['tier'] === 'tier2') {
                 $manifest['action'] = 'Reported';
-                $manifest['remediation_status'] = 'Report Only';
+                $manifest['remediation_status'] = 'Awaiting Review';
             } elseif ($dryRun) {
                 $manifest['action'] = 'Simulated';
-                $manifest['remediation_status'] = 'Dry Run';
+                $manifest['remediation_status'] = 'Simulated';
             } elseif ($shouldModify) {
                 $manifest['action'] = 'Preserved Evidence';
                 $manifest['remediation_status'] = 'Evidence Preserved';
@@ -378,9 +367,9 @@ class MSP_PG_Remediator
             'plugin_slug' => $analysis['plugin_slug'],
             'live_path' => $analysis['plugin_dir'],
             'artifact_dir' => $artifactDir,
-            'quarantine_path' => $quarantineDir,
-            'snapshot_path' => $snapshotDir,
-            'zip_path' => $zipPath,
+            'quarantine_path' => $effectiveEvidenceMode === 'full_artifact_retention' ? $quarantineDir : '',
+            'snapshot_path' => $effectiveEvidenceMode === 'full_artifact_retention' ? $snapshotDir : '',
+            'zip_path' => ($effectiveEvidenceMode === 'compressed_archive' || $effectiveEvidenceMode === 'full_artifact_retention') ? $zipPath : '',
             'evidence_manifest_path' => $manifestPath,
             'tier' => $analysis['tier'],
             'family' => $analysis['family'],
@@ -403,7 +392,7 @@ class MSP_PG_Remediator
             'protected_plugin' => $analysis['protected_plugin'],
             'preservation_verified' => $preservationVerified,
             'bundle_eligible' => $bundleEligible,
-            'evidence_retention_mode' => $evidenceMode,
+            'evidence_retention_mode' => $effectiveEvidenceMode,
         );
     }
 
@@ -470,8 +459,7 @@ class MSP_PG_Remediator
 
         foreach (array(
             'Confirmed Malware' => $scanReport['confirmed_malware'],
-            'Heuristic Findings' => $scanReport['heuristic_findings'],
-            'Interesting Findings' => $scanReport['interesting_findings'],
+            'Review Required' => $scanReport['review_required'],
         ) as $label => $detectionsGroup) {
             if (empty($detectionsGroup)) {
                 continue;
