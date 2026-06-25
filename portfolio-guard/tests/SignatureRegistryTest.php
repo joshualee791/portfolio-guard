@@ -78,8 +78,8 @@ class SignatureRegistryTest
             $this->assertTrue(in_array('CONFIRMED_MALWARE_IDENTIFIED', $detection['actions'], true), $slug . ' should record confirmed malware identification');
             $this->assertTrue(in_array('EVIDENCE_MANIFEST_CREATED', $detection['actions'], true), $slug . ' should create an evidence manifest');
             $this->assertTrue(in_array('BUNDLE_VERIFIED', $detection['actions'], true), $slug . ' should verify evidence preservation');
-            $this->assertTrue(in_array('QUARANTINE_COMPLETED', $detection['actions'], true), $slug . ' should complete temporary quarantine');
             $this->assertTrue(in_array('LIVE_PLUGIN_REMOVED', $detection['actions'], true), $slug . ' should be eligible for automatic remediation');
+            $this->assertFalse(in_array('QUARANTINE_COMPLETED', $detection['actions'], true), $slug . ' must not record QUARANTINE_COMPLETED in metadata_only mode — no persistent quarantine exists');
             $this->assertTrue(file_exists($detection['artifact_dir'] . DIRECTORY_SEPARATOR . 'evidence.json'), $slug . ' should have evidence.json');
             $this->assertFalse(file_exists($detection['artifact_dir'] . DIRECTORY_SEPARATOR . 'artifact.zip'), $slug . ' should not create a ZIP archive in metadata_only mode');
             $this->assertFalse(is_dir($detection['artifact_dir'] . DIRECTORY_SEPARATOR . 'snapshot'), $slug . ' should not retain a snapshot directory in metadata_only mode');
@@ -91,6 +91,10 @@ class SignatureRegistryTest
 
         $this->assertFalse(array_key_exists('safe_mode', $report), 'Scan report must not contain safe_mode field');
         $this->assertFalse(array_key_exists('allow_tier1_remediation', $report), 'Scan report must not contain allow_tier1_remediation field');
+        $this->assertFalse(array_key_exists('heuristic_findings', $report), 'Scan report must not contain heuristic_findings key');
+        $this->assertFalse(array_key_exists('interesting_findings', $report), 'Scan report must not contain interesting_findings key');
+        $this->assertTrue(array_key_exists('review_required', $report), 'Scan report must contain review_required key');
+        $this->assertFalse(isset($report['tier_counts']['tier3']), 'Scan report tier_counts must not contain tier3');
 
         foreach ($families as $slug) {
             $detection = $this->findDetection($report['confirmed_malware'], $slug);
