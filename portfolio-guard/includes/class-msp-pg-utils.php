@@ -276,13 +276,22 @@ class MSP_PG_Utils
                 $lines[] = '- Evidence mode: `' . $detection['evidence_retention_mode'] . '`';
                 $lines[] = '- Preservation verified: `' . ($detection['preservation_verified'] ? 'yes' : 'no') . '`';
                 $lines[] = '- Protected plugin: `' . ($detection['protected_plugin'] ? 'yes' : 'no') . '`';
-                $lines[] = '- Score: `' . $detection['score'] . '`';
+                // Tier-specific evidence representation (Spec 005 §11.3)
+                if ($detection['tier'] !== 'tier2') {
+                    $lines[] = '- Score: `' . $detection['score'] . '`';
+                }
+                if (!empty($detection['behavior_profiles'])) {
+                    $labels = array_column($detection['behavior_profiles'], 'profile_label');
+                    $lines[] = '- Behavior Profiles: `' . implode(', ', $labels) . '`';
+                }
                 $lines[] = '- Confidence: `' . $detection['confidence'] . '`';
                 $lines[] = '- Source: `' . $detection['source'] . '`';
                 $lines[] = '- Actions: `' . implode('; ', $detection['action_descriptions']) . '`';
                 $lines[] = '- Exact matches: `' . implode(', ', $detection['exact_match_types']) . '`';
                 $lines[] = '- Indicators: `' . implode(', ', $detection['matched_indicators']) . '`';
-                $lines[] = '- Reasons: `' . implode(', ', $detection['reason_labels']) . '`';
+                if ($detection['tier'] !== 'tier2') {
+                    $lines[] = '- Reasons: `' . implode(', ', $detection['reason_labels']) . '`';
+                }
                 if (!empty($detection['warnings'])) {
                     $lines[] = '- Warnings: `' . implode(', ', $detection['warnings']) . '`';
                 }
@@ -333,7 +342,14 @@ class MSP_PG_Utils
             foreach ($scanReport[$key] as $detection) {
                 $lines[] = '- Plugin: ' . $detection['plugin_slug'];
                 $lines[] = '  Tier: ' . strtoupper($detection['tier']);
-                $lines[] = '  Score: ' . $detection['score'];
+                // Tier-specific evidence representation (Spec 005 §11.3)
+                if ($detection['tier'] !== 'tier2') {
+                    $lines[] = '  Score: ' . $detection['score'];
+                }
+                if (!empty($detection['behavior_profiles'])) {
+                    $labels = implode(', ', array_column($detection['behavior_profiles'], 'profile_label'));
+                    $lines[] = '  Behavior Profiles: ' . $labels;
+                }
                 $lines[] = '  Confidence: ' . $detection['confidence'];
                 $lines[] = '  Source: ' . $detection['source'];
                 $lines[] = '  Action: ' . implode('; ', $detection['action_descriptions']);
@@ -461,14 +477,13 @@ class MSP_PG_Utils
         );
         $html .= '<h2>Review Required</h2>';
         $html .= $renderTable(
-            array('Plugin', 'Tier', 'Score', 'Action', 'Reasons'),
+            array('Plugin', 'Behavior Profiles', 'Action'),
             array_map(function ($detection) {
+                $profileLabels = array_column($detection['behavior_profiles'], 'profile_label');
                 return array(
                     self::html_escape($detection['plugin_slug']),
-                    self::html_escape(strtoupper($detection['tier'])),
-                    self::html_escape($detection['score']),
+                    self::html_escape(empty($profileLabels) ? '—' : implode(', ', $profileLabels)),
                     self::html_escape(implode('; ', $detection['action_descriptions'])),
-                    self::html_escape(implode(', ', $detection['reason_labels'])),
                 );
             }, $scanReport['review_required'])
         );
