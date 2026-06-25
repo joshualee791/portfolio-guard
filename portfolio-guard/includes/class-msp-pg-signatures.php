@@ -126,53 +126,83 @@ class MSP_PG_Signatures
     }
 
     // -------------------------------------------------------------------------
+    // Cache invalidation — called by MSP_PG_Updater after successful install
+    // -------------------------------------------------------------------------
+
+    public static function reset()
+    {
+        self::$registry    = null;
+        self::$registry_ok = false;
+    }
+
+    // -------------------------------------------------------------------------
     // Registry loading (private)
     // -------------------------------------------------------------------------
 
     private static function load()
     {
-        $path = defined('MSP_PG_PLUGIN_FILE')
+        $installedPath = defined('MSP_PG_PLUGIN_FILE')
             ? plugin_dir_path(MSP_PG_PLUGIN_FILE) . 'data/signatures.json'
             : '';
 
-        if ($path === '') {
-            error_log('MSP Portfolio Guard: MSP_PG_PLUGIN_FILE is not defined — cannot locate signature registry');
+        $appliedPath = MSP_PG_Config::applied_registry_path();
+
+        $installed = $installedPath !== '' ? self::load_from_path($installedPath) : null;
+        $applied   = $appliedPath   !== '' ? self::load_from_path($appliedPath)   : null;
+
+        $installedVersion = ($installed !== null) ? (int) $installed['registry_version'] : -1;
+        $appliedVersion   = ($applied   !== null) ? (int) $applied['registry_version']   : -1;
+
+        if ($applied !== null && $appliedVersion >= $installedVersion) {
+            self::$registry    = $applied;
+            self::$registry_ok = true;
             return;
         }
 
-        if (!file_exists($path)) {
-            error_log('MSP Portfolio Guard: signature registry not found at ' . $path);
+        if ($installed !== null) {
+            self::$registry    = $installed;
+            self::$registry_ok = true;
             return;
+        }
+
+        error_log('MSP Portfolio Guard: signature registry unavailable — both installed and applied paths failed validation.');
+    }
+
+    private static function load_from_path($path)
+    {
+        if (empty($path) || !file_exists($path) || !is_readable($path)) {
+            return null;
         }
 
         $raw = @file_get_contents($path);
         if ($raw === false) {
-            error_log('MSP Portfolio Guard: could not read signature registry at ' . $path);
-            return;
+            return null;
         }
 
-        $data = json_decode($raw, true);
+        $data = @json_decode($raw, true);
         if (!is_array($data)) {
-            error_log('MSP Portfolio Guard: signature registry JSON decode failed at ' . $path);
-            return;
+            return null;
         }
 
         if (!isset($data['schema_version']) || $data['schema_version'] !== 1) {
-            error_log('MSP Portfolio Guard: unsupported signature registry schema_version at ' . $path);
-            return;
+            return null;
         }
 
-        if (!isset($data['variants']) || !is_array($data['variants'])) {
-            error_log('MSP Portfolio Guard: signature registry missing variants at ' . $path);
-            return;
+        // registry_version is required; absent treated as 0 for backward compatibility
+        if (!array_key_exists('registry_version', $data)) {
+            $data['registry_version'] = 0;
+        } elseif (!is_int($data['registry_version']) || $data['registry_version'] < 0) {
+            return null;
+        }
+
+        if (empty($data['variants']) || !is_array($data['variants'])) {
+            return null;
         }
 
         if (!isset($data['exact_ioc_strings']) || !is_array($data['exact_ioc_strings'])) {
-            error_log('MSP Portfolio Guard: signature registry missing exact_ioc_strings at ' . $path);
-            return;
+            return null;
         }
 
-        self::$registry    = $data;
-        self::$registry_ok = true;
+        return $data;
     }
 }
