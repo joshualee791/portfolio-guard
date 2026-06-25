@@ -34,4 +34,5 @@ register_deactivation_hook(MSP_PG_PLUGIN_FILE, array('MSP_PG_Plugin', 'deactivat
 register_deactivation_hook(MSP_PG_PLUGIN_FILE, array('MSP_PG_UpdateScheduler', 'deactivate'));
 register_uninstall_hook(MSP_PG_PLUGIN_FILE, array('MSP_PG_Plugin', 'uninstall'));
 
+add_action('plugins_loaded', array('MSP_PG_UpdateScheduler', 'init'));
 MSP_PG_Plugin::instance();
