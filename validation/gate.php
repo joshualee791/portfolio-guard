@@ -38,6 +38,7 @@ require_once VALIDATION_ROOT . DIRECTORY_SEPARATOR . 'runner' . DIRECTORY_SEPARA
 require_once VALIDATION_ROOT . DIRECTORY_SEPARATOR . 'runner' . DIRECTORY_SEPARATOR . 'CleanPluginTest.php';
 require_once VALIDATION_ROOT . DIRECTORY_SEPARATOR . 'runner' . DIRECTORY_SEPARATOR . 'UpdateInfrastructureTest.php';
 require_once VALIDATION_ROOT . DIRECTORY_SEPARATOR . 'runner' . DIRECTORY_SEPARATOR . 'DiagnosticsTest.php';
+require_once VALIDATION_ROOT . DIRECTORY_SEPARATOR . 'runner' . DIRECTORY_SEPARATOR . 'UninstallTest.php';
 require_once VALIDATION_ROOT . DIRECTORY_SEPARATOR . 'runner' . DIRECTORY_SEPARATOR . 'SyntheticBehaviorTest.php';
 
 $overallFailed = false;
@@ -95,7 +96,20 @@ if ($dg['failed'] > 0) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5. Synthetic Behaviors (gate_blocking per-entry; non-blocking in Phase 2)
+// 5. Uninstall (blocking)
+// ─────────────────────────────────────────────────────────────────────────────
+$un = (new UninstallTest())->run();
+foreach ($un['results'] as $line) {
+    echo $line . "\n";
+}
+echo "\n";
+
+if ($un['failed'] > 0) {
+    $overallFailed = true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. Synthetic Behaviors (gate_blocking per-entry; non-blocking in Phase 2)
 // ─────────────────────────────────────────────────────────────────────────────
 $sb = (new SyntheticBehaviorTest())->run();
 foreach ($sb['results'] as $line) {
@@ -119,6 +133,7 @@ echo sprintf("Known Malware:         %d / %d passed\n", $km['passed'], $km['tota
 echo sprintf("Clean Plugins:         %d / %d passed\n", $cp['passed'], $cp['total']);
 echo sprintf("Update Infrastructure: %d / %d passed\n", $ui['passed'], $ui['total']);
 echo sprintf("Diagnostics:           %d / %d passed\n", $dg['passed'], $dg['total']);
+echo sprintf("Uninstall:             %d / %d passed\n", $un['passed'], $un['total']);
 echo sprintf("Synthetic:             %s\n", $syntheticLabel);
 echo "\n";
 
@@ -145,6 +160,9 @@ if ($overallFailed) {
     }
     if ($dg['failed'] > 0) {
         $reasons[] = $dg['failed'] . ' diagnostics ' . ($dg['failed'] === 1 ? 'test' : 'tests') . ' failed';
+    }
+    if ($un['failed'] > 0) {
+        $reasons[] = $un['failed'] . ' uninstall ' . ($un['failed'] === 1 ? 'test' : 'tests') . ' failed';
     }
     if ($sb['blocking_failed'] > 0) {
         $reasons[] = $sb['blocking_failed'] . ' synthetic ' . ($sb['blocking_failed'] === 1 ? 'test' : 'tests') . ' failed';

@@ -15,6 +15,18 @@ if (!function_exists('plugin_dir_path')) {
     }
 }
 
+if (!function_exists('plugin_basename')) {
+    function plugin_basename($file)
+    {
+        $normalized = str_replace('\\', '/', $file);
+        $pluginsDir = defined('WP_PLUGIN_DIR') ? str_replace('\\', '/', WP_PLUGIN_DIR) : '';
+        if ($pluginsDir !== '' && strpos($normalized, $pluginsDir . '/') === 0) {
+            return ltrim(substr($normalized, strlen($pluginsDir)), '/');
+        }
+        return basename(dirname($file)) . '/' . basename($file);
+    }
+}
+
 if (!defined('MINUTE_IN_SECONDS')) {
     define('MINUTE_IN_SECONDS', 60);
 }
@@ -444,7 +456,9 @@ require_once dirname(__DIR__) . '/includes/class-msp-pg-updater.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-update-scheduler.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-diagnostics.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-diagnostics-page.php';
+require_once dirname(__DIR__) . '/includes/class-msp-pg-plugin-updater.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-plugin.php';
 
 MSP_PG_UpdateScheduler::init();
 MSP_PG_DiagnosticsPage::register();
+MSP_PG_PluginUpdater::register();

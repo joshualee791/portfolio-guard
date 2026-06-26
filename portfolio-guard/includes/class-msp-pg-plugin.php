@@ -41,14 +41,60 @@ class MSP_PG_Plugin
     public static function uninstall()
     {
         self::clear_scan_schedule();
+        wp_clear_scheduled_hook(MSP_PG_UpdateScheduler::HOOK);
         self::remove_mu_loader();
+
+        // Options — pre-2.0.0
         delete_option(MSP_PG_Config::state_option_name());
         delete_option(MSP_PG_Config::pending_activation_option_name());
         delete_option(MSP_PG_Config::setup_notice_option_name());
         delete_option('msp_pg_allow_tier1_remediation');
         delete_option('msp_pg_version');
+        delete_option('msp_pg_report_recipient');
+
+        // Options — Spec 007 update infrastructure
+        delete_option('msp_pg_last_update_checked');
+        delete_option('msp_pg_last_update_applied');
+        delete_option('msp_pg_max_registry_version');
+        delete_option('msp_pg_update_consecutive_failures');
+
+        // Options — Spec 009 plugin updater
+        delete_option('msp_pg_plugin_update_last_checked');
+        delete_option('msp_pg_plugin_update_cache');
+
+        // Transients
         delete_transient(MSP_PG_Config::scan_lock_key());
         delete_transient(MSP_PG_Config::catchup_lock_key());
+        delete_transient('msp_pg_update_notice');
+
+        // Applied registry directory ({uploads}/portfolio-guard/)
+        $registryPath = MSP_PG_Config::applied_registry_path();
+        if (!empty($registryPath)) {
+            $registryDir = dirname($registryPath);
+            self::remove_directory($registryDir);
+        }
+    }
+
+    private static function remove_directory($dir)
+    {
+        if (empty($dir) || !is_dir($dir)) {
+            return;
+        }
+
+        $items = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($items as $item) {
+            if ($item->isDir()) {
+                @rmdir($item->getPathname());
+            } else {
+                @unlink($item->getPathname());
+            }
+        }
+
+        @rmdir($dir);
     }
 
     public function run_cron_scan()
