@@ -198,4 +198,13 @@ class MSP_PG_Config
             ? $uploads['basedir'] . DIRECTORY_SEPARATOR . 'portfolio-guard' . DIRECTORY_SEPARATOR . 'signatures.json'
             : '';
     }
+
+    // -------------------------------------------------------------------------
+    // Plugin update infrastructure (Spec 009)
+    // -------------------------------------------------------------------------
+
+    public static function plugin_update_url()
+    {
+        return 'https://releases.portfolioguard.internal/v1/plugin.json';
+    }
 }

@@ -3,7 +3,10 @@ param(
     [string]$SourceDir,
 
     [Parameter(Mandatory = $true)]
-    [string]$DestinationZip
+    [string]$DestinationZip,
+
+    [Parameter(Mandatory = $false)]
+    [string[]]$ExcludePaths = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -56,15 +59,37 @@ try {
     try {
         $archive.CreateEntry("$pluginFolderName/") | Out-Null
 
+        $normalizedExcludes = $ExcludePaths | ForEach-Object { $_.TrimEnd('/\').ToLowerInvariant() }
+
         $directories = Get-ChildItem -LiteralPath $sourceRoot -Directory -Recurse | Sort-Object FullName
         foreach ($directory in $directories) {
             $relativeDir = Get-RelativeZipPath -BaseDir $sourceRoot -FullPath $directory.FullName
-            $archive.CreateEntry("$pluginFolderName/$relativeDir/") | Out-Null
+            $relativeLower = $relativeDir.TrimEnd('/').ToLowerInvariant()
+            $excluded = $false
+            foreach ($ex in $normalizedExcludes) {
+                if ($relativeLower -eq $ex -or $relativeLower.StartsWith($ex + '/')) {
+                    $excluded = $true
+                    break
+                }
+            }
+            if (-not $excluded) {
+                $archive.CreateEntry("$pluginFolderName/$relativeDir/") | Out-Null
+            }
         }
 
         $files = Get-ChildItem -LiteralPath $sourceRoot -File -Recurse | Sort-Object FullName
         foreach ($file in $files) {
             $relativeFile = Get-RelativeZipPath -BaseDir $sourceRoot -FullPath $file.FullName
+            $relativeLower = $relativeFile.ToLowerInvariant()
+            $excluded = $false
+            foreach ($ex in $normalizedExcludes) {
+                $exWithSlash = $ex + '/'
+                if ($relativeLower -eq $ex -or $relativeLower.StartsWith($exWithSlash)) {
+                    $excluded = $true
+                    break
+                }
+            }
+            if ($excluded) { continue }
             $entryPath = "$pluginFolderName/$relativeFile"
             $entry = $archive.CreateEntry($entryPath, [System.IO.Compression.CompressionLevel]::Optimal)
 

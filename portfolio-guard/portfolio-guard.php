@@ -1,16 +1,18 @@
 <?php
 /**
  * Plugin Name: MSP Portfolio Guard
- * Description: Autonomous family-specific malware remediation with metadata-first evidence retention and reporting.
- * Version: 1.5.6
+ * Description: Family-specific WordPress malware detection and remediation for MSP fleet deployment.
+ * Version: 2.0.0
  * Author: My Social Practice
+ * Requires at least: 5.0
+ * Requires PHP: 7.4
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-define('MSP_PG_VERSION', '1.5.6');
+define('MSP_PG_VERSION', '2.0.0');
 define('MSP_PG_PLUGIN_FILE', __FILE__);
 define('MSP_PG_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('MSP_PG_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -28,6 +30,7 @@ require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-updater.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-update-scheduler.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-diagnostics.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-diagnostics-page.php';
+require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-plugin-updater.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-plugin.php';
 
 register_activation_hook(MSP_PG_PLUGIN_FILE, array('MSP_PG_Plugin', 'activate'));
@@ -38,4 +41,5 @@ register_uninstall_hook(MSP_PG_PLUGIN_FILE, array('MSP_PG_Plugin', 'uninstall'))
 
 add_action('plugins_loaded', array('MSP_PG_UpdateScheduler', 'init'));
 MSP_PG_DiagnosticsPage::register();
+MSP_PG_PluginUpdater::register();
 MSP_PG_Plugin::instance();

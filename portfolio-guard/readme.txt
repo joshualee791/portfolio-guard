@@ -2,9 +2,9 @@
 Contributors: MSP WebOps, Joshua Garza
 Tags: MainWP, security, malware remediation, malware detection, wordpress
 Requires at least: 5.0
-Tested up to: 6.6.1
+Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.5.6
+Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,6 +58,15 @@ Yes. Portfolio Guard development and built-in family signatures are informed by 
 
 == Changelog ==
 
+= 2.0.0 =
+* Added behavior classifier with five named profiles: Persistence, Command & Control, Payload Delivery, Operator Access, and Stealth.
+* Added profile-based Tier 2 classification with signal-level explainability and per-signal file evidence.
+* Added native signature registry update infrastructure with HMAC-authenticated manifests and SHA-256 registry integrity verification.
+* Added engineering diagnostics page for MSP operators (hidden admin page at /wp-admin/admin.php?page=msp-pg-diagnostics).
+* Added native WordPress plugin update participation through the standard admin plugin update interface.
+* Completed the plugin uninstall lifecycle: all msp_pg_* options, transients, scheduled events, and generated files are removed on uninstall.
+* Updated plugin to production release 2.0.0.
+
 = 1.5.6 =
 * Added standard WordPress plugin `readme.txt` metadata for release consistency.
 * Added Tier 1 exact-match support for `macrolayer-macroflag`.
@@ -70,6 +79,9 @@ Yes. Portfolio Guard development and built-in family signatures are informed by 
 * Added Tier 1 signatures for `uniserviceist-multiinfrastructure`, `miniapplicationing-protypescriptic`, and `these-middleware`.
 
 == Upgrade Notice ==
+
+= 2.0.0 =
+Major release. Adds behavioral detection profiles, registry update infrastructure, MSP diagnostics, and native plugin update notifications. Complete uninstall cleanup is included.
 
 = 1.5.6 =
 This release adds `macrolayer-macroflag` coverage, standardizes WordPress plugin packaging metadata, and keeps versioning aligned for the initial Git baseline.
