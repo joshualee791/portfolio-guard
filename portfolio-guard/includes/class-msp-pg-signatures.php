@@ -6,8 +6,9 @@ if (!defined('ABSPATH')) {
 
 class MSP_PG_Signatures
 {
-    private static $registry    = null;
-    private static $registry_ok = false;
+    private static $registry       = null;
+    private static $registry_ok    = false;
+    private static $registrySource = '';
 
     // -------------------------------------------------------------------------
     // Registry availability
@@ -131,8 +132,33 @@ class MSP_PG_Signatures
 
     public static function reset()
     {
-        self::$registry    = null;
-        self::$registry_ok = false;
+        self::$registry       = null;
+        self::$registry_ok    = false;
+        self::$registrySource = '';
+    }
+
+    // -------------------------------------------------------------------------
+    // Registry metadata — narrow diagnostic accessor (Spec 008)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the version and source of the currently loaded registry, or null
+     * if the registry is unavailable. Does not expose malware family structures.
+     *
+     * @return array{version: int, source: string}|null
+     */
+    public static function registry_metadata()
+    {
+        if (self::$registry === null) {
+            self::load();
+        }
+        if (!self::$registry_ok) {
+            return null;
+        }
+        return array(
+            'version' => (int) self::$registry['registry_version'],
+            'source'  => self::$registrySource,
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -154,14 +180,16 @@ class MSP_PG_Signatures
         $appliedVersion   = ($applied   !== null) ? (int) $applied['registry_version']   : -1;
 
         if ($applied !== null && $appliedVersion >= $installedVersion) {
-            self::$registry    = $applied;
-            self::$registry_ok = true;
+            self::$registry       = $applied;
+            self::$registry_ok    = true;
+            self::$registrySource = 'applied';
             return;
         }
 
         if ($installed !== null) {
-            self::$registry    = $installed;
-            self::$registry_ok = true;
+            self::$registry       = $installed;
+            self::$registry_ok    = true;
+            self::$registrySource = 'installed';
             return;
         }
 
