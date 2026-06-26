@@ -13,6 +13,13 @@
  *   2 — ZIP not found or could not be opened
  */
 
+if (!class_exists('ZipArchive')) {
+    fwrite(STDERR, "[ERROR] PHP 'zip' extension is required but not loaded.\n");
+    fwrite(STDERR, "  Fix: uncomment 'extension=zip' in your php.ini\n");
+    fwrite(STDERR, "  Find your php.ini: php --ini\n");
+    exit(2);
+}
+
 $opts = getopt('', array('zip:', 'version:'));
 
 $zipPath = isset($opts['zip'])     ? $opts['zip']     : '';
