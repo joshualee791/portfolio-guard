@@ -26,6 +26,8 @@ require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-remediator.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-update-verifier.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-updater.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-update-scheduler.php';
+require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-diagnostics.php';
+require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-diagnostics-page.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-plugin.php';
 
 register_activation_hook(MSP_PG_PLUGIN_FILE, array('MSP_PG_Plugin', 'activate'));
@@ -35,4 +37,5 @@ register_deactivation_hook(MSP_PG_PLUGIN_FILE, array('MSP_PG_UpdateScheduler', '
 register_uninstall_hook(MSP_PG_PLUGIN_FILE, array('MSP_PG_Plugin', 'uninstall'));
 
 add_action('plugins_loaded', array('MSP_PG_UpdateScheduler', 'init'));
+MSP_PG_DiagnosticsPage::register();
 MSP_PG_Plugin::instance();

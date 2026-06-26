@@ -194,6 +194,11 @@ class MSP_PG_Updater
         return (array) get_option('msp_pg_last_update_applied', array());
     }
 
+    public static function consecutive_failures()
+    {
+        return (int) get_option('msp_pg_update_consecutive_failures', 0);
+    }
+
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------

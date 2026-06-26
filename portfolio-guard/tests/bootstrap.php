@@ -287,6 +287,37 @@ if (!function_exists('esc_html')) {
     }
 }
 
+if (!function_exists('add_submenu_page')) {
+    function add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $callback = '', $position = null)
+    {
+        return null;
+    }
+}
+
+if (!function_exists('wp_die')) {
+    function wp_die($message = '', $title = '', $args = array())
+    {
+        exit((string) $message);
+    }
+}
+
+if (!function_exists('human_time_diff')) {
+    function human_time_diff($from, $to = null)
+    {
+        if ($to === null) {
+            $to = time();
+        }
+        $diff = abs((int) $to - (int) $from);
+        if ($diff < 60) {
+            return $diff . ' seconds';
+        }
+        if ($diff < 3600) {
+            return round($diff / 60) . ' minutes';
+        }
+        return round($diff / 3600) . ' hours';
+    }
+}
+
 if (!function_exists('get_bloginfo')) {
     function get_bloginfo($show = '')
     {
@@ -411,6 +442,9 @@ require_once dirname(__DIR__) . '/includes/class-msp-pg-remediator.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-update-verifier.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-updater.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-update-scheduler.php';
+require_once dirname(__DIR__) . '/includes/class-msp-pg-diagnostics.php';
+require_once dirname(__DIR__) . '/includes/class-msp-pg-diagnostics-page.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-plugin.php';
 
 MSP_PG_UpdateScheduler::init();
+MSP_PG_DiagnosticsPage::register();
