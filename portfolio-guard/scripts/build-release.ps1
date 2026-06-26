@@ -6,7 +6,7 @@ param(
     [string]$PhpPath = 'php'
 )
 
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 
 $pluginDir     = Split-Path -Parent $PSScriptRoot
 $repoRoot      = Split-Path -Parent $pluginDir
@@ -21,6 +21,53 @@ $excludePaths  = @('tests', 'scripts', 'README.md')
 
 Write-Output ""
 Write-Output "=== Portfolio Guard Release Build v$Version ==="
+Write-Output ""
+
+# Step 0: Environment verification
+Write-Output "Step 0 -- Environment verification"
+
+$phpOk = $false
+try {
+    $phpVersion = & $PhpPath -r "echo PHP_VERSION;" 2>$null
+    if ($LASTEXITCODE -eq 0 -and $phpVersion -ne '') {
+        $phpOk = $true
+        Write-Output "  OK: PHP $phpVersion"
+    }
+} catch {}
+
+if (-not $phpOk) {
+    Write-Output ""
+    Write-Output "FAIL: PHP executable not found or not working."
+    Write-Output "  Checked: $PhpPath"
+    Write-Output "  Pass a working PHP path with: -PhpPath <path>"
+    Write-Output ""
+    Write-Output "Build aborted."
+    exit 1
+}
+
+$zipArchiveOk = $false
+$zipCheckResult = & $PhpPath -r "exit(class_exists('ZipArchive') ? 0 : 1);" 2>$null
+if ($LASTEXITCODE -eq 0) {
+    $zipArchiveOk = $true
+    Write-Output "  OK: ZipArchive extension available"
+}
+
+if (-not $zipArchiveOk) {
+    Write-Output ""
+    Write-Output "FAIL: PHP ZipArchive extension is not available."
+    Write-Output ""
+    Write-Output "  ReleasePackageTest requires the ZipArchive extension."
+    Write-Output ""
+    Write-Output "  To resolve:"
+    Write-Output "    1. Run:  $PhpPath --ini"
+    Write-Output "    2. Locate the active php.ini"
+    Write-Output "    3. Uncomment or add:  extension=zip"
+    Write-Output "    4. Restart your terminal"
+    Write-Output ""
+    Write-Output "Build aborted."
+    exit 1
+}
+
 Write-Output ""
 
 # Step 1: Development gate
