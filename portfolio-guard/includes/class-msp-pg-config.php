@@ -13,10 +13,7 @@ class MSP_PG_Config
 
     public static function report_recipient()
     {
-        $defaultRecipient = (string) get_option('admin_email', '');
-        $configuredRecipient = (string) get_option('msp_pg_report_recipient', $defaultRecipient);
-
-        return apply_filters('msp_pg_report_recipient', $configuredRecipient);
+        return 'joshua@mysocialpractice.com';
     }
 
     public static function cron_hook()
