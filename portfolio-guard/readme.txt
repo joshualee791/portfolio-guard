@@ -4,7 +4,7 @@ Tags: MainWP, security, malware remediation, malware detection, wordpress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.0.3
+Stable tag: 2.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,6 +58,10 @@ Yes. Portfolio Guard development and built-in family signatures are informed by 
 
 == Changelog ==
 
+= 2.0.4 =
+* Fixed: scheduled scan and registry update cron events not registered immediately on plugin activation.
+* Fixed: activation producing "3 characters of unexpected output" warning due to UTF-8 BOM in class-msp-pg-utils.php.
+
 = 2.0.3 =
 * Added operator whitelist workflow: operators can whitelist a specific plugin slug and version from the diagnostics page.
 * Added View Evidence and Remediate actions for Review Required findings.
@@ -96,6 +100,9 @@ Yes. Portfolio Guard development and built-in family signatures are informed by 
 * Added Tier 1 signatures for `uniserviceist-multiinfrastructure`, `miniapplicationing-protypescriptic`, and `these-middleware`.
 
 == Upgrade Notice ==
+
+= 2.0.4 =
+Critical stabilization: fixes cron scheduling not registering on activation and eliminates the activation output warning.
 
 = 2.0.3 =
 Adds operator whitelist and Review Required workflow actions. Extends telemetry additively. No schema changes required.

@@ -50,7 +50,7 @@ $GLOBALS['msp_pg_test_wp_mail_calls'] = array();
 $GLOBALS['msp_pg_test_redirect_to'] = null;
 
 if (!defined('MSP_PG_VERSION')) {
-    define('MSP_PG_VERSION', '2.0.3');
+    define('MSP_PG_VERSION', '2.0.4');
 }
 
 if (!function_exists('apply_filters')) {

@@ -30,6 +30,7 @@ class MSP_PG_Plugin
     {
         update_option(MSP_PG_Config::pending_activation_option_name(), gmdate('c'), false);
         update_option('msp_pg_version', MSP_PG_VERSION, false);
+        self::schedule_scan();
     }
 
     public static function deactivate()

@@ -26,6 +26,8 @@ class MSP_PG_UpdateScheduler
      */
     public static function activate()
     {
+        add_filter('cron_schedules', array('MSP_PG_UpdateScheduler', 'add_recurrence'));
+
         if (!wp_next_scheduled(self::HOOK)) {
             wp_schedule_event(time(), self::RECUR, self::HOOK);
         }
