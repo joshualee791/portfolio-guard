@@ -62,6 +62,9 @@ class MSP_PG_Plugin
         delete_option('msp_pg_plugin_update_last_checked');
         delete_option('msp_pg_plugin_update_cache');
 
+        // Options — telemetry contract
+        delete_option('msp_pg_telemetry');
+
         // Transients
         delete_transient(MSP_PG_Config::scan_lock_key());
         delete_transient(MSP_PG_Config::catchup_lock_key());

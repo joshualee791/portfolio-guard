@@ -20,9 +20,9 @@ class MSP_PG_DiagnosticsPage
     public static function add_page()
     {
         add_submenu_page(
-            null,
-            'MSP Portfolio Guard — Diagnostics',
-            'MSP Portfolio Guard — Diagnostics',
+            'options-general.php',
+            'MSP Portfolio Guard — Diagnostics &amp; Settings',
+            'Portfolio Guard',
             'manage_options',
             self::PAGE_SLUG,
             array(__CLASS__, 'render')
@@ -64,6 +64,11 @@ class MSP_PG_DiagnosticsPage
 
         check_admin_referer('msp_pg_scan_now');
 
+        if (get_transient(MSP_PG_Config::scan_lock_key())) {
+            wp_redirect(admin_url('admin.php?page=' . self::PAGE_SLUG . '&msp_pg_scan_busy=1'));
+            exit;
+        }
+
         MSP_PG_Remediator::run_scan('manual');
 
         wp_redirect(admin_url('admin.php?page=' . self::PAGE_SLUG . '&msp_pg_scanned=1'));
@@ -103,6 +108,9 @@ class MSP_PG_DiagnosticsPage
         }
         if (!empty($_GET['msp_pg_scanned'])) {
             echo '<div class="notice notice-success is-dismissible"><p>Scan completed.</p></div>';
+        }
+        if (!empty($_GET['msp_pg_scan_busy'])) {
+            echo '<div class="notice notice-warning is-dismissible"><p>A scan is already in progress. Please wait for it to finish before starting another.</p></div>';
         }
 
         self::render_plugin($data['plugin']);

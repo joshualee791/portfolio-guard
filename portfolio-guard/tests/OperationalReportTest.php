@@ -98,8 +98,8 @@ class OperationalReportTest
             $GLOBALS['msp_pg_test_wp_mail_calls'],
             function ($call) {
                 return strpos($call['subject'], 'CLEAN REPORT') !== false
-                    || strpos($call['subject'], 'MALWARE DETECTED') !== false
-                    || strpos($call['subject'], 'Review Required') !== false;
+                    || strpos($call['subject'], 'CONFIRMED MALWARE REMEDIATED') !== false
+                    || strpos($call['subject'], 'REVIEW REQUIRED') !== false;
             }
         );
 
@@ -118,16 +118,16 @@ class OperationalReportTest
     {
         $report = $this->minimal_scan_report(array('fake-plugin'), array());
         $subject = MSP_PG_Remediator::scan_email_subject($report);
-        $this->assertContains('Review Required', $subject, 'subject_review: must contain Review Required');
+        $this->assertContains('REVIEW REQUIRED', $subject, 'subject_review: must contain REVIEW REQUIRED');
         $this->assertNotContains('CLEAN REPORT', $subject, 'subject_review: must not contain CLEAN REPORT');
-        $this->assertNotContains('MALWARE DETECTED', $subject, 'subject_review: must not contain MALWARE DETECTED');
+        $this->assertNotContains('CONFIRMED MALWARE REMEDIATED', $subject, 'subject_review: must not contain CONFIRMED MALWARE REMEDIATED');
     }
 
     private function test_scan_email_subject_confirmed_malware()
     {
         $report = $this->minimal_scan_report(array(), array('fake-malware'));
         $subject = MSP_PG_Remediator::scan_email_subject($report);
-        $this->assertContains('MALWARE DETECTED', $subject, 'subject_malware: must contain MALWARE DETECTED');
+        $this->assertContains('CONFIRMED MALWARE REMEDIATED', $subject, 'subject_malware: must contain CONFIRMED MALWARE REMEDIATED');
         $this->assertNotContains('CLEAN REPORT', $subject, 'subject_malware: must not contain CLEAN REPORT');
     }
 

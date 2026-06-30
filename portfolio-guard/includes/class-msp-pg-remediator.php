@@ -6,6 +6,11 @@ if (!defined('ABSPATH')) {
 
 class MSP_PG_Remediator
 {
+    const SUBJECT_CLEAN   = 'CLEAN REPORT';
+    const SUBJECT_REVIEW  = 'REVIEW REQUIRED';
+    const SUBJECT_MALWARE = 'CONFIRMED MALWARE REMEDIATED';
+    const SUBJECT_FAILED  = 'SCAN FAILED';
+
     public static function run_scan($trigger = 'manual', $args = array())
     {
         if (get_transient(MSP_PG_Config::scan_lock_key())) {
@@ -15,13 +20,17 @@ class MSP_PG_Remediator
         set_transient(MSP_PG_Config::scan_lock_key(), 1, 15 * MINUTE_IN_SECONDS);
 
         if (!MSP_PG_Signatures::registry_available()) {
-            $errorMessage = 'MSP Portfolio Guard: scan aborted — signature registry unavailable on ' . get_site_url() . '. Check portfolio-guard/data/signatures.json.';
+            $siteUrl      = home_url('/');
+            $errorMessage = 'MSP Portfolio Guard: scan aborted — signature registry unavailable on ' . $siteUrl . '. Check portfolio-guard/data/signatures.json.';
             error_log($errorMessage);
-            wp_mail(
-                MSP_PG_Config::report_recipient(),
-                '[MSP Portfolio Guard] Scan aborted — signature registry unavailable',
-                $errorMessage
-            );
+            $failedSubject = sprintf('[MSP Portfolio Guard] %s - %s', self::SUBJECT_FAILED, $siteUrl);
+            add_filter('wp_mail_content_type', array(__CLASS__, 'html_mail_content_type'));
+            wp_mail(MSP_PG_Config::report_recipient(), $failedSubject, self::build_scan_failed_email($siteUrl, $errorMessage));
+            remove_filter('wp_mail_content_type', array(__CLASS__, 'html_mail_content_type'));
+            MSP_PG_Diagnostics::record_telemetry(array(
+                'current_security_state'  => 'scan_failed',
+                'last_failed_report_sent' => gmdate('c'),
+            ));
             delete_transient(MSP_PG_Config::scan_lock_key());
             return array('registry_error' => true, 'trigger' => $trigger);
         }
@@ -111,6 +120,17 @@ class MSP_PG_Remediator
         }
 
         delete_transient(MSP_PG_Config::scan_lock_key());
+
+        $confirmedCount = count($scanReport['confirmed_malware']);
+        $reviewCount    = count($scanReport['review_required']);
+        if ($confirmedCount > 0) {
+            $securityState = 'confirmed_malware';
+        } elseif ($reviewCount > 0) {
+            $securityState = 'review_required';
+        } else {
+            $securityState = 'healthy';
+        }
+        MSP_PG_Diagnostics::record_telemetry(array('current_security_state' => $securityState));
 
         return $scanReport;
     }
@@ -483,12 +503,12 @@ class MSP_PG_Remediator
         $siteUrl        = $scanReport['site_url'];
 
         if ($confirmedCount > 0) {
-            return sprintf('[MSP Portfolio Guard] MALWARE DETECTED - %s', $siteUrl);
+            return sprintf('[MSP Portfolio Guard] %s - %s', self::SUBJECT_MALWARE, $siteUrl);
         }
         if ($reviewCount > 0) {
-            return sprintf('[MSP Portfolio Guard] Review Required - %s', $siteUrl);
+            return sprintf('[MSP Portfolio Guard] %s - %s', self::SUBJECT_REVIEW, $siteUrl);
         }
-        return sprintf('[MSP Portfolio Guard] CLEAN REPORT - %s', $siteUrl);
+        return sprintf('[MSP Portfolio Guard] %s - %s', self::SUBJECT_CLEAN, $siteUrl);
     }
 
     private static function send_scan_report($scanDir, $scanReport)
@@ -497,11 +517,14 @@ class MSP_PG_Remediator
         $reviewCount    = count($scanReport['review_required']);
 
         if ($confirmedCount > 0) {
-            $outcome = 'MALWARE DETECTED: ' . $confirmedCount . ' confirmed malware instance(s)';
+            $outcome = self::SUBJECT_MALWARE . ': ' . $confirmedCount . ' confirmed malware instance(s)';
+            $tsField = 'last_malware_report_sent';
         } elseif ($reviewCount > 0) {
-            $outcome = 'REVIEW REQUIRED: ' . $reviewCount . ' plugin(s) flagged for review';
+            $outcome = self::SUBJECT_REVIEW . ': ' . $reviewCount . ' plugin(s) flagged for review';
+            $tsField = 'last_review_report_sent';
         } else {
             $outcome = 'CLEAN — No threats detected';
+            $tsField = 'last_clean_report_sent';
         }
 
         $nextTs   = wp_next_scheduled(MSP_PG_Config::cron_hook());
@@ -513,6 +536,8 @@ class MSP_PG_Remediator
         add_filter('wp_mail_content_type', array(__CLASS__, 'html_mail_content_type'));
         wp_mail(MSP_PG_Config::report_recipient(), $subject, $htmlBody);
         remove_filter('wp_mail_content_type', array(__CLASS__, 'html_mail_content_type'));
+
+        MSP_PG_Diagnostics::record_telemetry(array($tsField => gmdate('c')));
     }
 
     private static function build_operational_email($scanReport, $outcome, $nextScan)
@@ -566,6 +591,30 @@ class MSP_PG_Remediator
             }
         }
 
+        $html .= '</body></html>';
+        return $html;
+    }
+
+    private static function build_scan_failed_email($siteUrl, $errorMessage)
+    {
+        $html  = '<html><body style="font-family:Arial,sans-serif;color:#1f2328;">';
+        $html .= '<h1>MSP Portfolio Guard &mdash; Scan Failed</h1>';
+        $html .= '<table style="border-collapse:collapse;">';
+        foreach (array(
+            'Site'           => $siteUrl,
+            'Scan Attempted' => gmdate('Y-m-d H:i \U\T\C'),
+            'Outcome'        => 'SCAN FAILED — Signature registry unavailable',
+            'Plugin Version' => MSP_PG_VERSION,
+        ) as $label => $value) {
+            $html .= '<tr>';
+            $html .= '<td style="padding:5px 16px 5px 0;font-weight:bold;vertical-align:top;">'
+                   . MSP_PG_Utils::html_escape($label) . '</td>';
+            $html .= '<td style="padding:5px 0;">'
+                   . MSP_PG_Utils::html_escape((string) $value) . '</td>';
+            $html .= '</tr>';
+        }
+        $html .= '</table>';
+        $html .= '<p style="margin-top:16px;color:#d1242f;">' . MSP_PG_Utils::html_escape($errorMessage) . '</p>';
         $html .= '</body></html>';
         return $html;
     }

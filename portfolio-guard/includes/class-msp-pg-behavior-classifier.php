@@ -24,7 +24,7 @@ class MSP_PG_BehaviorClassifier
     {
         $activated = array();
 
-        foreach (array_keys(self::profile_definitions()) as $profileId) {
+        foreach (array_keys(self::profile_configs()) as $profileId) {
             if (!self::activates($profileId, $observations)) {
                 continue;
             }
@@ -33,7 +33,7 @@ class MSP_PG_BehaviorClassifier
 
             $activated[] = array(
                 'profile_id'       => $profileId,
-                'profile_label'    => self::profile_definitions()[$profileId]['label'],
+                'profile_label'    => self::profile_configs()[$profileId]['label'],
                 'summary'          => self::generate_summary($profileId, $evidence),
                 'signals_observed' => $evidence,
             );
@@ -44,93 +44,140 @@ class MSP_PG_BehaviorClassifier
 
     /**
      * Return true if a specific profile is activated by the given observations.
+     * Activation uses a weighted scoring model: each present signal contributes
+     * its weight; the profile activates when the total meets the threshold.
      * Exposed for targeted testing and classifier transparency.
      */
     public static function activates($profileId, array $observations)
     {
-        $has = function ($signalId) use ($observations) {
-            return MSP_PG_FeatureExtractor::has_signal($observations, $signalId);
-        };
-
-        switch ($profileId) {
-            case 'persistence':
-                // A plugin that hides from the admin interface or hooks pre-deactivation
-                // execution pathways demonstrates Persistence.
-                // HP-01 and HP-02 are specific enough to activate alone.
-                return $has('HP-01') || $has('HP-02');
-
-            case 'command-and-control':
-                // Family-specific SM strings are unambiguous — any single one activates.
-                // Generic FC signals (REST routes, outbound HTTP) appear in many legitimate
-                // plugins and are not sufficient corroboration without a family-specific marker.
-                foreach (array('SM-01', 'SM-02', 'SM-03', 'SM-04', 'SM-05', 'KB-02') as $smId) {
-                    if ($has($smId)) {
-                        return true;
-                    }
-                }
-                return false;
-
-            case 'payload-delivery':
-                // DM-01 (createElement in PHP output) is specific enough to activate alone.
-                // SP-01 (short alphanumeric directory with 8-char PHP file) matches too many
-                // legitimate vendor directories; require a corroborating family-specific marker.
-                if ($has('DM-01')) {
-                    return true;
-                }
-                if ($has('SP-01')) {
-                    foreach (array('SM-01', 'SM-02', 'SM-03', 'SM-04', 'SM-05', 'KB-02') as $smId) {
-                        if ($has($smId)) {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-
-            case 'operator-access':
-                // KB-01 (known backdoor triplet) activates alone — it is family-specific.
-                // FC-03 (wp_set_auth_cookie) is used legitimately by remote management and
-                // backup plugins; require FC-04 (raw setcookie) as corroboration, which
-                // represents the token-write step of an impersonation flow.
-                return $has('KB-01') || ($has('FC-03') && $has('FC-04'));
-
-            case 'stealth':
-                // HP-01 (hiding from plugin list) is unambiguous and activates alone.
-                // CB-01 + FC-01 (anonymous REST endpoint) is too broad — many legitimate
-                // plugins expose unauthenticated endpoints without stealth intent.
-                return $has('HP-01');
+        $configs = self::profile_configs();
+        if (!isset($configs[$profileId])) {
+            return false;
         }
 
-        return false;
+        $config    = $configs[$profileId];
+        $threshold = $config['threshold'];
+        $score     = 0;
+
+        foreach ($config['weights'] as $signalId => $weight) {
+            if (MSP_PG_FeatureExtractor::has_signal($observations, $signalId)) {
+                $score += $weight;
+                if ($score >= $threshold) {
+                    return true;
+                }
+            }
+        }
+
+        return $score >= $threshold;
+    }
+
+    /**
+     * Return the full signal contribution matrix for a profile against the given
+     * observations. Useful for calibration, debugging, and operator transparency.
+     */
+    public static function explain($profileId, array $observations)
+    {
+        $configs = self::profile_configs();
+        if (!isset($configs[$profileId])) {
+            return null;
+        }
+
+        $config    = $configs[$profileId];
+        $threshold = $config['threshold'];
+        $score     = 0;
+        $signals   = array();
+
+        foreach ($config['weights'] as $signalId => $weight) {
+            $present = MSP_PG_FeatureExtractor::has_signal($observations, $signalId);
+            if ($present) {
+                $score += $weight;
+            }
+            $signals[$signalId] = array(
+                'weight'  => $weight,
+                'present' => $present,
+            );
+        }
+
+        return array(
+            'profile_id' => $profileId,
+            'label'      => $config['label'],
+            'threshold'  => $threshold,
+            'score'      => $score,
+            'activates'  => $score >= $threshold,
+            'signals'    => $signals,
+        );
     }
 
     // -------------------------------------------------------------------------
-    // Profile definitions: signal membership for evidence collection (Spec 005 §8)
+    // Profile configs: label, activation threshold, and per-signal weights.
+    // Weights reflect specificity: family-specific strings score 100 (activate
+    // alone at threshold 50); generic signals require corroboration.
+    // Configurable at runtime via the msp_pg_behavior_classifier_profiles filter.
     // -------------------------------------------------------------------------
 
-    private static function profile_definitions()
+    private static function profile_configs()
     {
-        return array(
+        return apply_filters('msp_pg_behavior_classifier_profiles', array(
             'persistence' => array(
-                'label'   => 'Persistence',
-                'signals' => array('HP-01', 'HP-02', 'FC-01', 'FC-08', 'CB-01', 'SP-01'),
+                'label'     => 'Persistence',
+                'threshold' => 50,
+                'weights'   => array(
+                    'HP-01' => 100, // removes self from plugin list — unambiguous
+                    'HP-02' => 100, // hooks template_redirect pre-deactivation — unambiguous
+                    'FC-08' =>  30, // cron registration — generic
+                    'FC-01' =>  20, // REST endpoint — generic, insufficient alone
+                    'CB-01' =>  15, // unauthenticated callback — generic
+                    'SP-01' =>  15, // concealed staging structure — generic
+                ),
             ),
             'command-and-control' => array(
-                'label'   => 'Command & Control',
-                'signals' => array('SM-01', 'SM-02', 'SM-03', 'SM-04', 'SM-05', 'KB-02', 'FC-01', 'FC-02', 'CB-01', 'FC-08'),
+                'label'     => 'Command & Control',
+                'threshold' => 50,
+                'weights'   => array(
+                    'SM-01' => 100, // known family bootstrap string — family-specific
+                    'SM-02' => 100,
+                    'SM-03' => 100,
+                    'SM-04' => 100,
+                    'SM-05' => 100,
+                    'KB-02' => 100, // known family string pattern — family-specific
+                    'FC-01' =>  30, // REST endpoint — generic, requires corroboration
+                    'FC-02' =>  25, // outbound HTTP — generic, requires corroboration
+                    'CB-01' =>  25, // unauthenticated callback — generic
+                    'FC-08' =>  15, // cron registration — generic
+                ),
             ),
             'payload-delivery' => array(
-                'label'   => 'Payload Delivery',
-                'signals' => array('DM-01', 'SP-01', 'FC-07', 'SP-02'),
+                'label'     => 'Payload Delivery',
+                'threshold' => 50,
+                'weights'   => array(
+                    'DM-01' =>  80, // dynamic createElement in PHP output — specific
+                    'SP-01' =>  60, // concealed payload staging structure — specific
+                    'SP-02' =>  40, // secondary staging pattern — moderately specific
+                    'FC-07' =>  15, // script enqueue — extremely common in clean plugins
+                ),
             ),
             'operator-access' => array(
-                'label'   => 'Operator Access',
-                'signals' => array('KB-01', 'FC-03', 'FC-05', 'FC-04', 'FC-06'),
+                'label'     => 'Operator Access',
+                'threshold' => 50,
+                'weights'   => array(
+                    'KB-01' => 100, // known auth impersonation pattern — family-specific
+                    'FC-03' =>  60, // wp_set_auth_cookie — suspicious outside auth plugins
+                    'FC-04' =>  40, // raw setcookie — token-write corroboration
+                    'FC-06' =>  40, // admin redirect post-session creation
+                    'FC-05' =>  30, // cookie read/manipulation
+                ),
             ),
             'stealth' => array(
-                'label'   => 'Stealth',
-                'signals' => array('HP-01', 'CB-01', 'HP-02', 'KB-02'),
+                'label'     => 'Stealth',
+                'threshold' => 50,
+                'weights'   => array(
+                    'HP-01' => 100, // self-removal from plugin list — unambiguous
+                    'HP-02' =>  80, // template_redirect hook — specific
+                    'CB-01' =>  30, // unauthenticated REST — generic, requires corroboration
+                    'FC-01' =>  25, // REST endpoint — generic
+                ),
             ),
-        );
+        ));
     }
 
     // -------------------------------------------------------------------------
@@ -139,10 +186,10 @@ class MSP_PG_BehaviorClassifier
 
     private static function collect_evidence($profileId, array $observations)
     {
-        $profile  = self::profile_definitions()[$profileId];
+        $config   = self::profile_configs()[$profileId];
         $evidence = array();
 
-        foreach ($profile['signals'] as $signalId) {
+        foreach (array_keys($config['weights']) as $signalId) {
             foreach (MSP_PG_FeatureExtractor::find_by_signal($observations, $signalId) as $obs) {
                 $evidence[] = $obs;
             }

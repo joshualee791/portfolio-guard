@@ -180,6 +180,8 @@ class MSP_PG_Updater
             : '';
         error_log('MSP Portfolio Guard: registry successfully updated to version ' . $version . $logSuffix . '.');
 
+        MSP_PG_Diagnostics::record_telemetry(array());
+
         return true;
     }
 

@@ -22,6 +22,68 @@ class MSP_PG_Diagnostics
     }
 
     // -------------------------------------------------------------------------
+    // Telemetry contract (schema version 1)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Return the stored telemetry record, or build a fresh one if none is stored.
+     */
+    public static function telemetry()
+    {
+        $stored = get_option('msp_pg_telemetry', null);
+        if ($stored === null) {
+            return self::build_telemetry(array());
+        }
+        return (array) $stored;
+    }
+
+    /**
+     * Merge $updates into a freshly built telemetry record and persist it.
+     * Caller-supplied $updates take precedence; previously stored report delivery
+     * timestamps are always preserved via build_telemetry().
+     */
+    public static function record_telemetry(array $updates = array())
+    {
+        $stored    = (array) get_option('msp_pg_telemetry', array());
+        $telemetry = array_merge(self::build_telemetry($stored), $updates);
+        update_option('msp_pg_telemetry', $telemetry, true);
+        return $telemetry;
+    }
+
+    private static function build_telemetry(array $stored)
+    {
+        $data        = self::collect();
+        $scanData    = $data['scanning'];
+        $schedData   = $data['scheduler'];
+        $regData     = $data['registry'];
+
+        return array(
+            'telemetry_schema_version'      => 1,
+            'plugin_version'                => MSP_PG_VERSION,
+            'signature_version'             => MSP_PG_Config::signature_version(),
+            'heuristic_version'             => MSP_PG_Config::heuristic_version(),
+            'site_url'                      => home_url('/'),
+            'site_slug'                     => MSP_PG_Config::site_slug(),
+            'current_security_state'        => isset($stored['current_security_state']) ? $stored['current_security_state'] : 'healthy',
+            'last_scan_at'                  => $scanData['last_scan_at'] !== '' ? $scanData['last_scan_at'] : null,
+            'last_scan_trigger'             => $scanData['trigger'] !== '' ? $scanData['trigger'] : null,
+            'last_scan_detections'          => (int) $scanData['detections'],
+            'scan_in_progress'              => (bool) $scanData['scan_in_progress'],
+            'next_scan_at'                  => $schedData['scan_next'] !== false ? (int) $schedData['scan_next'] : null,
+            'registry_version'              => $regData['version'],
+            'registry_source'               => $regData['source'],
+            'registry_consecutive_failures' => (int) $regData['consecutive_failures'],
+            'last_update_checked'           => $regData['last_checked'],
+            'report_recipient_configured'   => get_option('msp_pg_report_recipient', '') !== '',
+            'last_clean_report_sent'        => isset($stored['last_clean_report_sent'])  ? $stored['last_clean_report_sent']  : null,
+            'last_review_report_sent'       => isset($stored['last_review_report_sent']) ? $stored['last_review_report_sent'] : null,
+            'last_malware_report_sent'      => isset($stored['last_malware_report_sent'])? $stored['last_malware_report_sent']: null,
+            'last_failed_report_sent'       => isset($stored['last_failed_report_sent']) ? $stored['last_failed_report_sent'] : null,
+            'telemetry_recorded_at'         => gmdate('c'),
+        );
+    }
+
+    // -------------------------------------------------------------------------
     // Section collectors
     // -------------------------------------------------------------------------
 
