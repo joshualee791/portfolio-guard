@@ -65,6 +65,9 @@ class MSP_PG_Plugin
         // Options — telemetry contract
         delete_option('msp_pg_telemetry');
 
+        // Options — Review Required workflow (2.0.3)
+        delete_option(MSP_PG_Whitelist::OPTION_NAME);
+
         // Transients
         delete_transient(MSP_PG_Config::scan_lock_key());
         delete_transient(MSP_PG_Config::catchup_lock_key());

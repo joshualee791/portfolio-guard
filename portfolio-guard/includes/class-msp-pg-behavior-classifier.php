@@ -108,6 +108,20 @@ class MSP_PG_BehaviorClassifier
         );
     }
 
+    /**
+     * Return the explain() matrix for every profile against the given observations.
+     * Keyed by profile ID. Used to build the evidence snapshot stored in scan state
+     * for operator review in the diagnostics page.
+     */
+    public static function explain_all(array $observations)
+    {
+        $result = array();
+        foreach (array_keys(self::profile_configs()) as $profileId) {
+            $result[$profileId] = self::explain($profileId, $observations);
+        }
+        return $result;
+    }
+
     // -------------------------------------------------------------------------
     // Profile configs: label, activation threshold, and per-signal weights.
     // Weights reflect specificity: family-specific strings score 100 (activate

@@ -75,6 +75,9 @@ class TelemetryTest
             'last_update_checked', 'report_recipient_configured',
             'last_clean_report_sent', 'last_review_report_sent',
             'last_malware_report_sent', 'last_failed_report_sent', 'telemetry_recorded_at',
+            // Whitelist / review-workflow fields (additive, 2.0.3)
+            'whitelist_count', 'last_whitelist_at', 'last_whitelist_plugin',
+            'last_review_action', 'last_review_action_timestamp',
         );
 
         foreach ($required as $field) {

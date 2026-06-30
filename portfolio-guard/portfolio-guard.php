@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MSP Portfolio Guard
  * Description: Family-specific WordPress malware detection and remediation for MSP fleet deployment.
- * Version: 2.0.2
+ * Version: 2.0.3
  * Author: My Social Practice
  * Requires at least: 5.0
  * Requires PHP: 7.4
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('MSP_PG_VERSION', '2.0.2');
+define('MSP_PG_VERSION', '2.0.3');
 define('MSP_PG_PLUGIN_FILE', __FILE__);
 define('MSP_PG_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('MSP_PG_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -24,6 +24,7 @@ require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-feature-extractor.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-behavior-classifier.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-detector.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-runtime.php';
+require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-whitelist.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-remediator.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-update-verifier.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-updater.php';

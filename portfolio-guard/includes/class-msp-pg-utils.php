@@ -131,6 +131,28 @@ class MSP_PG_Utils
 
         return strtoupper(hash('sha256', implode("\n", $rows)));
     }
+    /**
+     * Read the Version: header from a plugin's PHP files (checks root-level *.php, 8 KB read).
+     * Returns the version string, or '' if not found.
+     */
+    public static function plugin_version($pluginDir)
+    {
+        $files = glob(trailingslashit($pluginDir) . '*.php') ?: array();
+        foreach ($files as $file) {
+            if (!is_readable($file)) {
+                continue;
+            }
+            $contents = @file_get_contents($file, false, null, 0, 8192);
+            if ($contents === false) {
+                continue;
+            }
+            if (preg_match('/^\s*[\/*#]*\s*Version:\s*([^\r\n]+)/mi', $contents, $m)) {
+                return trim($m[1]);
+            }
+        }
+        return '';
+    }
+
     public static function detect_plugin_files($plugin_dir)
     {
         $files = glob(trailingslashit($plugin_dir) . '*.php');

@@ -79,6 +79,12 @@ class MSP_PG_Diagnostics
             'last_review_report_sent'       => isset($stored['last_review_report_sent']) ? $stored['last_review_report_sent'] : null,
             'last_malware_report_sent'      => isset($stored['last_malware_report_sent'])? $stored['last_malware_report_sent']: null,
             'last_failed_report_sent'       => isset($stored['last_failed_report_sent']) ? $stored['last_failed_report_sent'] : null,
+            // Whitelist and review-workflow fields (additive — no schema version bump required)
+            'whitelist_count'               => MSP_PG_Whitelist::count(),
+            'last_whitelist_at'             => isset($stored['last_whitelist_at'])             ? $stored['last_whitelist_at']             : null,
+            'last_whitelist_plugin'         => isset($stored['last_whitelist_plugin'])         ? $stored['last_whitelist_plugin']         : null,
+            'last_review_action'            => isset($stored['last_review_action'])            ? $stored['last_review_action']            : null,
+            'last_review_action_timestamp'  => isset($stored['last_review_action_timestamp'])  ? $stored['last_review_action_timestamp']  : null,
             'telemetry_recorded_at'         => gmdate('c'),
         );
     }

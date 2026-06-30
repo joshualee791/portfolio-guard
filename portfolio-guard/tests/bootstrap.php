@@ -50,7 +50,7 @@ $GLOBALS['msp_pg_test_wp_mail_calls'] = array();
 $GLOBALS['msp_pg_test_redirect_to'] = null;
 
 if (!defined('MSP_PG_VERSION')) {
-    define('MSP_PG_VERSION', '2.0.2');
+    define('MSP_PG_VERSION', '2.0.3');
 }
 
 if (!function_exists('apply_filters')) {
@@ -507,6 +507,27 @@ if (!function_exists('sanitize_text_field')) {
     }
 }
 
+if (!function_exists('sanitize_key')) {
+    function sanitize_key($key)
+    {
+        return preg_replace('/[^a-z0-9_-]/', '', strtolower((string) $key));
+    }
+}
+
+if (!function_exists('wp_get_current_user')) {
+    function wp_get_current_user()
+    {
+        return (object) array('ID' => 1, 'user_login' => 'admin');
+    }
+}
+
+if (!function_exists('get_current_user_id')) {
+    function get_current_user_id()
+    {
+        return 1;
+    }
+}
+
 if (!function_exists('register_setting')) {
     function register_setting($option_group, $option_name, $args = array())
     {
@@ -555,6 +576,7 @@ require_once dirname(__DIR__) . '/includes/class-msp-pg-feature-extractor.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-behavior-classifier.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-detector.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-runtime.php';
+require_once dirname(__DIR__) . '/includes/class-msp-pg-whitelist.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-remediator.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-update-verifier.php';
 require_once dirname(__DIR__) . '/includes/class-msp-pg-updater.php';

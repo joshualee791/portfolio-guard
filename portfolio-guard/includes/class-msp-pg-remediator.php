@@ -44,10 +44,13 @@ class MSP_PG_Remediator
         $siteMeta = self::site_metadata();
         $evidenceRetentionMode = MSP_PG_Config::evidence_retention_mode();
         $dryRun = !empty($args['dry_run']) || MSP_PG_Config::default_dry_run();
+        $targetSlug      = isset($args['target_slug'])      ? (string) $args['target_slug']      : '';
+        $operatorConfirm = isset($args['operator_confirm'])  ? (string) $args['operator_confirm']  : '';
         $cleanup = self::cleanup_expired_artifacts($dryRun, $evidenceRetentionMode);
         $detections = array();
         $errors = array();
         $scanDir = '';
+        $pluginVersionMap = array();
 
         foreach (glob(trailingslashit(WP_PLUGIN_DIR) . '*', GLOB_ONLYDIR) ?: array() as $pluginDir) {
             $slug = basename($pluginDir);
@@ -56,9 +59,28 @@ class MSP_PG_Remediator
                 continue;
             }
 
+            if ($targetSlug !== '' && $slug !== $targetSlug) {
+                continue;
+            }
+
+            $pluginVersion = MSP_PG_Utils::plugin_version($pluginDir);
+            $pluginVersionMap[$slug] = $pluginVersion;
+
             $analysis = MSP_PG_Detector::detect($pluginDir);
             if ($analysis === null || $analysis['tier'] === 'tier3') {
                 continue;
+            }
+
+            // Whitelist suppression: skip Tier 2 findings for operator-approved slug/version
+            if ($analysis['tier'] === 'tier2' && $operatorConfirm === '' && MSP_PG_Whitelist::is_approved($slug, $pluginVersion)) {
+                continue;
+            }
+
+            // Operator-confirmed upgrade: treat a reviewed Tier 2 finding as Tier 1
+            if ($operatorConfirm !== '' && $slug === $operatorConfirm && $analysis['tier'] === 'tier2') {
+                $analysis['tier']             = 'tier1';
+                $analysis['confidence']       = 'Operator Confirmed';
+                $analysis['detection_source'] = 'Operator Review — Behavioral Classifier';
             }
 
             if ($scanDir === '') {
@@ -104,11 +126,37 @@ class MSP_PG_Remediator
             'active_theme' => $siteMeta['active_theme'],
         );
 
+        // Build enriched review_required snapshot for admin display (re-extracts observations
+        // for each Tier 2 plugin; these are report-only findings so the plugin still exists).
+        $reviewForState = array();
+        foreach ($scanReport['review_required'] as $detection) {
+            $detSlug      = $detection['plugin_slug'];
+            $detVersion   = isset($pluginVersionMap[$detSlug]) ? $pluginVersionMap[$detSlug] : '';
+            $observations = MSP_PG_FeatureExtractor::extract(trailingslashit(WP_PLUGIN_DIR) . $detSlug);
+            $reviewForState[] = array(
+                'plugin_slug'       => $detSlug,
+                'plugin_version'    => $detVersion,
+                'behavior_profiles' => $detection['behavior_profiles'],
+                'explain'           => MSP_PG_BehaviorClassifier::explain_all($observations),
+                'detected_at'       => $scanTimestamp,
+            );
+        }
+
         $state['last_scan_at'] = $scanTimestamp;
         $state['last_scan_result'] = array(
             'trigger' => $trigger,
             'detections' => count($detections),
         );
+        if ($targetSlug === '') {
+            // Full scan: replace the stored review_required list
+            $state['last_review_required'] = $reviewForState;
+        } else {
+            // Targeted scan: remove only the target plugin from the stored list
+            $storedReview = isset($state['last_review_required']) ? (array) $state['last_review_required'] : array();
+            $state['last_review_required'] = array_values(array_filter($storedReview, function ($entry) use ($targetSlug) {
+                return $entry['plugin_slug'] !== $targetSlug;
+            }));
+        }
         update_option(MSP_PG_Config::state_option_name(), $state, false);
 
         if ($scanDir !== '' && !$dryRun) {
@@ -133,6 +181,19 @@ class MSP_PG_Remediator
         MSP_PG_Diagnostics::record_telemetry(array('current_security_state' => $securityState));
 
         return $scanReport;
+    }
+
+    /**
+     * Confirm operator-reviewed remediation for a specific plugin.
+     * Upgrades the Tier 2 finding to Tier 1 and runs the existing remediation
+     * pipeline (deactivation, evidence bundle, email) for that plugin only.
+     */
+    public static function confirm_remediation($slug)
+    {
+        return self::run_scan('operator_confirm', array(
+            'target_slug'      => $slug,
+            'operator_confirm' => $slug,
+        ));
     }
 
     private static function remediate_detection($analysis, $siteMeta, $scanDir, $dryRun)
