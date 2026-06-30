@@ -4,7 +4,7 @@ Tags: MainWP, security, malware remediation, malware detection, wordpress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.0.4
+Stable tag: 2.0.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -30,6 +30,12 @@ Key behaviors:
 * Tier 1 malware remediation workflow
 * metadata-first evidence manifests and reporting
 * malware intelligence corpus-informed family tracking
+
+== Deployment Baseline ==
+
+Portfolio Guard 2.0.5 is the recommended starting point for all new installations. It includes the native WordPress update infrastructure introduced in 2.0.0 and stabilized through 2.0.4. Sites installed at 2.0.5 or later will receive future updates through the standard WordPress plugin update interface without requiring manual intervention.
+
+Sites running 2.0.3 or earlier must be manually updated to 2.0.5 (bridge installation) before the native updater becomes active.
 
 == Installation ==
 
@@ -57,6 +63,9 @@ The default retention mode is `metadata_only`, which stores evidence manifests a
 Yes. Portfolio Guard development and built-in family signatures are informed by preserved malware specimens and reverse-engineering research, including Atlas-ecosystem coverage.
 
 == Changelog ==
+
+= 2.0.5 =
+* Deployment baseline release. Establishes 2.0.5 as the recommended starting point for all new installations and the origin point for future native WordPress updates. No functional changes.
 
 = 2.0.4 =
 * Fixed: scheduled scan and registry update cron events not registered immediately on plugin activation.
@@ -100,6 +109,9 @@ Yes. Portfolio Guard development and built-in family signatures are informed by 
 * Added Tier 1 signatures for `uniserviceist-multiinfrastructure`, `miniapplicationing-protypescriptic`, and `these-middleware`.
 
 == Upgrade Notice ==
+
+= 2.0.5 =
+Deployment baseline release. Recommended starting point for all new installations. Future native WordPress updates originate from this release.
 
 = 2.0.4 =
 Critical stabilization: fixes cron scheduling not registering on activation and eliminates the activation output warning.
