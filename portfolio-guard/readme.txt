@@ -4,7 +4,7 @@ Tags: MainWP, security, malware remediation, malware detection, wordpress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.0.0
+Stable tag: 2.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,6 +58,23 @@ Yes. Portfolio Guard development and built-in family signatures are informed by 
 
 == Changelog ==
 
+= 2.0.3 =
+* Added operator whitelist workflow: operators can whitelist a specific plugin slug and version from the diagnostics page.
+* Added View Evidence and Remediate actions for Review Required findings.
+* Added whitelist management table with per-entry removal.
+* Extended telemetry schema with five additive fields: whitelist_count, last_whitelist_at, last_whitelist_plugin, last_review_action, last_review_action_timestamp.
+* Added MSP_PG_Whitelist class for slug-and-version-keyed approval storage.
+* Added explain_all() to MSP_PG_BehaviorClassifier to expose all five profile scores for evidence display.
+
+= 2.0.2 =
+* Recalibrated behavior classifier weights based on observed false-positive patterns in the clean plugin corpus.
+* Added per-signal file evidence to explainability output.
+* Expanded synthetic behavior test coverage.
+
+= 2.0.1 =
+* Stabilization release: addressed edge cases in Tier 2 scan state persistence and report formatting.
+* Hardened evidence manifest generation against missing plugin header fields.
+
 = 2.0.0 =
 * Added behavior classifier with five named profiles: Persistence, Command & Control, Payload Delivery, Operator Access, and Stealth.
 * Added profile-based Tier 2 classification with signal-level explainability and per-signal file evidence.
@@ -79,6 +96,15 @@ Yes. Portfolio Guard development and built-in family signatures are informed by 
 * Added Tier 1 signatures for `uniserviceist-multiinfrastructure`, `miniapplicationing-protypescriptic`, and `these-middleware`.
 
 == Upgrade Notice ==
+
+= 2.0.3 =
+Adds operator whitelist and Review Required workflow actions. Extends telemetry additively. No schema changes required.
+
+= 2.0.2 =
+Calibration update. No database schema changes.
+
+= 2.0.1 =
+Stabilization update. No database schema changes.
 
 = 2.0.0 =
 Major release. Adds behavioral detection profiles, registry update infrastructure, MSP diagnostics, and native plugin update notifications. Complete uninstall cleanup is included.

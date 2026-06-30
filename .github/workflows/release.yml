@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: zip
+          coverage: none
+
+      - name: Extract version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8NoBOM
+
+      - name: Stage clean corpus
+        shell: pwsh
+        run: ./validation/runner/stage-clean-corpus.ps1
+
+      - name: Build release
+        shell: pwsh
+        run: >-
+          ./portfolio-guard/scripts/build-release.ps1
+          -Version "${{ steps.version.outputs.version }}"
+
+      - name: Generate plugin.json
+        id: manifest
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          $version = $env:VERSION
+          $tag     = $env:TAG
+          $repo    = $env:REPO
+
+          $downloadUrl     = "https://github.com/$repo/releases/download/$tag/portfolio-guard-$version.zip"
+          $releaseNotesUrl = "https://github.com/$repo/releases/tag/$tag"
+
+          $readme   = Get-Content "portfolio-guard/readme.txt" -Raw
+          $requires = [regex]::Match($readme, '(?m)^Requires at least:\s*(.+)').Groups[1].Value.Trim()
+          $tested   = [regex]::Match($readme, '(?m)^Tested up to:\s*(.+)').Groups[1].Value.Trim()
+          $phpReq   = [regex]::Match($readme, '(?m)^Requires PHP:\s*(.+)').Groups[1].Value.Trim()
+          $sha256   = (Get-Content "releases/portfolio-guard/portfolio-guard-$version.sha256" -Raw).Split()[0]
+
+          $manifest = [ordered]@{
+            version           = $version
+            download_url      = $downloadUrl
+            requires          = $requires
+            tested            = $tested
+            requires_php      = $phpReq
+            sha256            = $sha256
+            release_notes_url = $releaseNotesUrl
+            changelog         = "See release notes: $releaseNotesUrl"
+          }
+
+          $json = ConvertTo-Json $manifest -Depth 5
+          $json | Out-File -FilePath "releases/portfolio-guard/plugin.json" -Encoding utf8NoBOM
+          Write-Output $json
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $tag     = $env:TAG
+          $version = $env:VERSION
+          $isPrerelease = $tag -match '-'
+
+          $ghArgs = @(
+            'release', 'create', $tag,
+            '--title', "Portfolio Guard $version",
+            "releases/portfolio-guard/portfolio-guard-$version.zip",
+            "releases/portfolio-guard/portfolio-guard-$version.sha256",
+            "releases/portfolio-guard/plugin.json"
+          )
+
+          if ($isPrerelease) {
+            $ghArgs += '--prerelease'
+          } else {
+            $ghArgs += '--latest'
+          }
+
+          & gh @ghArgs

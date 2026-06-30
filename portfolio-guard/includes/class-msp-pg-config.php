@@ -203,6 +203,6 @@ class MSP_PG_Config
 
     public static function plugin_update_url()
     {
-        return 'https://releases.portfolioguard.internal/v1/plugin.json';
+        return 'https://github.com/joshualee791/portfolio-guard/releases/latest/download/plugin.json';
     }
 }
