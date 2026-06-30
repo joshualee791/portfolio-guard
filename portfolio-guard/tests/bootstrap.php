@@ -46,9 +46,11 @@ $GLOBALS['msp_pg_test_filters'] = array();
 $GLOBALS['msp_pg_test_uploads_base'] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'msp-pg-test-uploads';
 $GLOBALS['msp_pg_test_scheduled_events'] = array();
 $GLOBALS['msp_pg_test_current_time'] = null;
+$GLOBALS['msp_pg_test_wp_mail_calls'] = array();
+$GLOBALS['msp_pg_test_redirect_to'] = null;
 
 if (!defined('MSP_PG_VERSION')) {
-    define('MSP_PG_VERSION', '1.5.6');
+    define('MSP_PG_VERSION', '2.0.1');
 }
 
 if (!function_exists('apply_filters')) {
@@ -286,8 +288,9 @@ if (!function_exists('wp_clear_scheduled_hook')) {
 }
 
 if (!function_exists('wp_mail')) {
-    function wp_mail($to, $subject, $message)
+    function wp_mail($to, $subject, $message, $headers = '', $attachments = array())
     {
+        $GLOBALS['msp_pg_test_wp_mail_calls'][] = compact('to', 'subject', 'message', 'headers');
         return true;
     }
 }
@@ -440,6 +443,108 @@ if (!function_exists('wp_remote_retrieve_body')) {
     function wp_remote_retrieve_body($response)
     {
         return isset($response['body']) ? (string) $response['body'] : '';
+    }
+}
+
+if (!function_exists('wp_unslash')) {
+    function wp_unslash($value)
+    {
+        return is_array($value) ? array_map('wp_unslash', $value) : stripslashes((string) $value);
+    }
+}
+
+if (!function_exists('wp_create_nonce')) {
+    function wp_create_nonce($action = -1)
+    {
+        return 'test-nonce';
+    }
+}
+
+if (!function_exists('wp_verify_nonce')) {
+    function wp_verify_nonce($nonce, $action = -1)
+    {
+        return 1;
+    }
+}
+
+if (!function_exists('check_admin_referer')) {
+    function check_admin_referer($action = -1, $query_arg = '_wpnonce')
+    {
+        return 1;
+    }
+}
+
+if (!function_exists('wp_nonce_field')) {
+    function wp_nonce_field($action = -1, $name = '_wpnonce', $referer = true, $echo = true)
+    {
+        $field = '<input type="hidden" name="' . esc_attr((string) $name) . '" value="test-nonce">';
+        if ($echo) {
+            echo $field;
+        }
+        return $field;
+    }
+}
+
+if (!function_exists('wp_redirect')) {
+    function wp_redirect($location, $status = 302, $x_redirect_by = 'WordPress')
+    {
+        $GLOBALS['msp_pg_test_redirect_to'] = $location;
+        return true;
+    }
+}
+
+if (!function_exists('sanitize_email')) {
+    function sanitize_email($email)
+    {
+        return filter_var(trim((string) $email), FILTER_SANITIZE_EMAIL);
+    }
+}
+
+if (!function_exists('sanitize_text_field')) {
+    function sanitize_text_field($str)
+    {
+        return trim(strip_tags((string) $str));
+    }
+}
+
+if (!function_exists('register_setting')) {
+    function register_setting($option_group, $option_name, $args = array())
+    {
+        return true;
+    }
+}
+
+if (!function_exists('esc_attr')) {
+    function esc_attr($text)
+    {
+        return htmlspecialchars((string) $text, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+if (!function_exists('esc_url')) {
+    function esc_url($url, $protocols = null, $_context = 'display')
+    {
+        return (string) $url;
+    }
+}
+
+if (!function_exists('admin_url')) {
+    function admin_url($path = '', $scheme = 'admin')
+    {
+        return 'https://example.test/wp-admin/' . ltrim((string) $path, '/');
+    }
+}
+
+if (!function_exists('submit_button')) {
+    function submit_button($text = 'Save Changes', $type = 'primary', $name = 'submit', $wrap = true, $other_attributes = '')
+    {
+        echo '<input type="submit" name="' . esc_attr($name) . '" value="' . esc_attr($text) . '">';
+    }
+}
+
+if (!function_exists('settings_errors')) {
+    function settings_errors($setting = '', $sanitize = false, $hide_on_update = false)
+    {
     }
 }
 

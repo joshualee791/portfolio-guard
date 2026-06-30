@@ -12,6 +12,9 @@ class MSP_PG_DiagnosticsPage
     {
         add_action('admin_menu',   array(__CLASS__, 'add_page'));
         add_action('admin_notices', array(__CLASS__, 'render_update_notice'));
+        add_action('admin_init',   array(__CLASS__, 'register_settings'));
+        add_action('admin_post_msp_pg_save_settings', array(__CLASS__, 'handle_save_settings'));
+        add_action('admin_post_msp_pg_scan_now',      array(__CLASS__, 'handle_scan_now'));
     }
 
     public static function add_page()
@@ -24,6 +27,47 @@ class MSP_PG_DiagnosticsPage
             self::PAGE_SLUG,
             array(__CLASS__, 'render')
         );
+    }
+
+    public static function register_settings()
+    {
+        register_setting('msp_pg_settings', 'msp_pg_report_recipient', array(
+            'type'              => 'string',
+            'sanitize_callback' => 'sanitize_email',
+            'default'           => '',
+        ));
+    }
+
+    public static function handle_save_settings()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die('You do not have permission to perform this action.');
+        }
+
+        check_admin_referer('msp_pg_save_settings');
+
+        $email = isset($_POST['msp_pg_report_recipient'])
+            ? sanitize_email(wp_unslash($_POST['msp_pg_report_recipient']))
+            : '';
+
+        update_option('msp_pg_report_recipient', $email, false);
+
+        wp_redirect(admin_url('admin.php?page=' . self::PAGE_SLUG . '&msp_pg_updated=1'));
+        exit;
+    }
+
+    public static function handle_scan_now()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die('You do not have permission to perform this action.');
+        }
+
+        check_admin_referer('msp_pg_scan_now');
+
+        MSP_PG_Remediator::run_scan('manual');
+
+        wp_redirect(admin_url('admin.php?page=' . self::PAGE_SLUG . '&msp_pg_scanned=1'));
+        exit;
     }
 
     /**
@@ -52,13 +96,22 @@ class MSP_PG_DiagnosticsPage
         $data = MSP_PG_Diagnostics::collect();
 
         echo '<div class="wrap">';
-        echo '<h1>MSP Portfolio Guard &mdash; Diagnostics</h1>';
+        echo '<h1>MSP Portfolio Guard &mdash; Diagnostics &amp; Settings</h1>';
+
+        if (!empty($_GET['msp_pg_updated'])) {
+            echo '<div class="notice notice-success is-dismissible"><p>Settings saved.</p></div>';
+        }
+        if (!empty($_GET['msp_pg_scanned'])) {
+            echo '<div class="notice notice-success is-dismissible"><p>Scan completed.</p></div>';
+        }
 
         self::render_plugin($data['plugin']);
         self::render_scanning($data['scanning']);
         self::render_scheduler($data['scheduler']);
         self::render_registry($data['registry']);
         self::render_configuration($data['configuration']);
+        self::render_settings();
+        self::render_scan_now();
 
         echo '</div>';
     }
@@ -174,6 +227,36 @@ class MSP_PG_DiagnosticsPage
         self::row('Report recipient', esc_html(self::mask_email((string) $d['report_recipient'])));
 
         echo '</tbody></table>';
+    }
+
+    private static function render_settings()
+    {
+        $recipient = esc_attr(MSP_PG_Config::report_recipient());
+
+        echo '<h2>Settings</h2>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        echo '<input type="hidden" name="action" value="msp_pg_save_settings">';
+        wp_nonce_field('msp_pg_save_settings');
+        echo '<table class="form-table" role="presentation"><tbody>';
+        echo '<tr>';
+        echo '<th scope="row"><label for="msp_pg_report_recipient">Report recipient</label></th>';
+        echo '<td><input type="email" id="msp_pg_report_recipient" name="msp_pg_report_recipient"'
+           . ' value="' . $recipient . '" class="regular-text"></td>';
+        echo '</tr>';
+        echo '</tbody></table>';
+        submit_button('Save Settings');
+        echo '</form>';
+    }
+
+    private static function render_scan_now()
+    {
+        echo '<h2>Actions</h2>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        echo '<input type="hidden" name="action" value="msp_pg_scan_now">';
+        wp_nonce_field('msp_pg_scan_now');
+        echo '<p>Trigger the normal scan pipeline immediately. Produces the same results and report email as a scheduled scan.</p>';
+        submit_button('Scan Now', 'secondary');
+        echo '</form>';
     }
 
     // -------------------------------------------------------------------------

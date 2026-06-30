@@ -104,6 +104,9 @@ class MSP_PG_Remediator
 
         if ($scanDir !== '' && !$dryRun) {
             self::write_scan_report($scanDir, $scanReport);
+        }
+
+        if (!$dryRun) {
             self::send_scan_report($scanDir, $scanReport);
         }
 
@@ -473,63 +476,98 @@ class MSP_PG_Remediator
         MSP_PG_Utils::write_text(MSP_PG_Utils::join_paths($scanDir, 'report.txt'), MSP_PG_Utils::plain_text_report($scanReport));
     }
 
+    public static function scan_email_subject(array $scanReport)
+    {
+        $confirmedCount = count($scanReport['confirmed_malware']);
+        $reviewCount    = count($scanReport['review_required']);
+        $siteUrl        = $scanReport['site_url'];
+
+        if ($confirmedCount > 0) {
+            return sprintf('[MSP Portfolio Guard] MALWARE DETECTED - %s', $siteUrl);
+        }
+        if ($reviewCount > 0) {
+            return sprintf('[MSP Portfolio Guard] Review Required - %s', $siteUrl);
+        }
+        return sprintf('[MSP Portfolio Guard] CLEAN REPORT - %s', $siteUrl);
+    }
+
     private static function send_scan_report($scanDir, $scanReport)
     {
-        $subject = sprintf(
-            '[MSP Portfolio Guard] %s detections on %s',
-            count($scanReport['detections']),
-            $scanReport['site_url']
-        );
+        $confirmedCount = count($scanReport['confirmed_malware']);
+        $reviewCount    = count($scanReport['review_required']);
 
-        $body = array(
-            'MSP Portfolio Guard completed a remediation scan.',
-            '',
-            'Site: ' . $scanReport['site_url'],
-            'Timestamp: ' . $scanReport['scan_timestamp'],
-            'Trigger: ' . $scanReport['trigger'],
-            'Evidence retention mode: ' . $scanReport['evidence_retention_mode'],
-            'Dry run: ' . ($scanReport['dry_run'] ? 'enabled' : 'disabled'),
-            'Detections: ' . count($scanReport['detections']),
-            'Cleanup: ' . MSP_PG_Utils::cleanup_summary($scanReport['cleanup']),
-            'Report path: ' . MSP_PG_Utils::join_paths($scanDir, 'report.json'),
-            'Artifact root: ' . MSP_PG_Utils::join_paths($scanDir, 'artifacts'),
-            '',
-        );
-
-        foreach (array(
-            'Confirmed Malware' => $scanReport['confirmed_malware'],
-            'Review Required' => $scanReport['review_required'],
-        ) as $label => $detectionsGroup) {
-            if (empty($detectionsGroup)) {
-                continue;
-            }
-
-            $body[] = $label . ':';
-            foreach ($detectionsGroup as $detection) {
-                $body[] = sprintf(
-                    '- %s [%s] actions=%s exact=%s artifact=%s',
-                    $detection['plugin_slug'],
-                    strtoupper($detection['tier']),
-                    implode('; ', $detection['action_descriptions']),
-                    implode(',', $detection['exact_match_types']),
-                    $detection['artifact_dir']
-                );
-            }
-            $body[] = '';
+        if ($confirmedCount > 0) {
+            $outcome = 'MALWARE DETECTED: ' . $confirmedCount . ' confirmed malware instance(s)';
+        } elseif ($reviewCount > 0) {
+            $outcome = 'REVIEW REQUIRED: ' . $reviewCount . ' plugin(s) flagged for review';
+        } else {
+            $outcome = 'CLEAN — No threats detected';
         }
 
-        if (!empty($scanReport['errors'])) {
-            $body[] = '';
-            $body[] = 'Errors:';
-            foreach ($scanReport['errors'] as $error) {
-                $body[] = '- ' . $error;
-            }
-        }
+        $nextTs   = wp_next_scheduled(MSP_PG_Config::cron_hook());
+        $nextScan = $nextTs !== false ? gmdate('Y-m-d H:i \U\T\C', (int) $nextTs) : 'Not scheduled';
 
-        $htmlBody = MSP_PG_Utils::html_report($scanReport);
+        $subject  = self::scan_email_subject($scanReport);
+        $htmlBody = self::build_operational_email($scanReport, $outcome, $nextScan);
+
         add_filter('wp_mail_content_type', array(__CLASS__, 'html_mail_content_type'));
         wp_mail(MSP_PG_Config::report_recipient(), $subject, $htmlBody);
         remove_filter('wp_mail_content_type', array(__CLASS__, 'html_mail_content_type'));
+    }
+
+    private static function build_operational_email($scanReport, $outcome, $nextScan)
+    {
+        $e = 'MSP_PG_Utils::html_escape';
+
+        $html  = '<html><body style="font-family:Arial,sans-serif;color:#1f2328;">';
+        $html .= '<h1>MSP Portfolio Guard &mdash; Operational Report</h1>';
+        $html .= '<table style="border-collapse:collapse;">';
+        foreach (array(
+            'Site'                => $scanReport['site_url'],
+            'Scan Completed'      => $scanReport['scan_timestamp'],
+            'Outcome'             => $outcome,
+            'Plugin Version'      => MSP_PG_VERSION,
+            'Signature Registry'  => MSP_PG_Config::signature_version(),
+            'Next Scheduled Scan' => $nextScan,
+        ) as $label => $value) {
+            $html .= '<tr>';
+            $html .= '<td style="padding:5px 16px 5px 0;font-weight:bold;vertical-align:top;">'
+                   . MSP_PG_Utils::html_escape($label) . '</td>';
+            $html .= '<td style="padding:5px 0;">'
+                   . MSP_PG_Utils::html_escape((string) $value) . '</td>';
+            $html .= '</tr>';
+        }
+        $html .= '</table>';
+
+        if (!empty($scanReport['detections'])) {
+            $html .= '<hr style="margin:20px 0;">';
+            foreach (array(
+                'Confirmed Malware' => $scanReport['confirmed_malware'],
+                'Review Required'   => $scanReport['review_required'],
+            ) as $heading => $group) {
+                if (empty($group)) {
+                    continue;
+                }
+                $html .= '<h2>' . MSP_PG_Utils::html_escape($heading) . '</h2><ul>';
+                foreach ($group as $detection) {
+                    $html .= '<li><strong>' . MSP_PG_Utils::html_escape($detection['plugin_slug']) . '</strong>'
+                           . ' &mdash; ' . MSP_PG_Utils::html_escape(implode('; ', $detection['action_descriptions']))
+                           . '</li>';
+                }
+                $html .= '</ul>';
+            }
+
+            if (!empty($scanReport['errors'])) {
+                $html .= '<h2>Errors</h2><ul>';
+                foreach ($scanReport['errors'] as $error) {
+                    $html .= '<li>' . MSP_PG_Utils::html_escape($error) . '</li>';
+                }
+                $html .= '</ul>';
+            }
+        }
+
+        $html .= '</body></html>';
+        return $html;
     }
 
     public static function html_mail_content_type()

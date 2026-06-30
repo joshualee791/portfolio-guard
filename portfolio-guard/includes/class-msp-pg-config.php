@@ -13,7 +13,8 @@ class MSP_PG_Config
 
     public static function report_recipient()
     {
-        return 'joshua@mysocialpractice.com';
+        $stored = (string) get_option('msp_pg_report_recipient', '');
+        return $stored !== '' ? $stored : 'joshua@mysocialpractice.com';
     }
 
     public static function cron_hook()
