@@ -28,17 +28,18 @@ class BehaviorClassifierTest
         $this->test_persistence_activates_on_hp02();
         $this->test_persistence_does_not_activate_on_fc01_alone();
         $this->test_c2_activates_on_sm_string();
-        $this->test_c2_activates_on_fc01_plus_fc02();
-        $this->test_c2_activates_on_fc01_plus_cb01();
+        $this->test_c2_does_not_activate_on_fc01_plus_fc02();
+        $this->test_c2_does_not_activate_on_fc01_plus_cb01();
         $this->test_c2_does_not_activate_on_fc01_alone();
         $this->test_c2_does_not_activate_on_fc02_alone();
         $this->test_payload_activates_on_dm01();
-        $this->test_payload_activates_on_sp01();
+        $this->test_payload_does_not_activate_on_sp01_alone();
         $this->test_payload_does_not_activate_on_fc07_alone();
-        $this->test_operator_access_activates_on_fc03();
+        $this->test_operator_access_does_not_activate_on_fc03_alone();
+        $this->test_operator_access_activates_on_fc03_plus_fc04();
         $this->test_operator_access_activates_on_kb01();
         $this->test_stealth_activates_on_hp01();
-        $this->test_stealth_activates_on_cb01_plus_fc01();
+        $this->test_stealth_does_not_activate_on_cb01_plus_fc01();
         $this->test_stealth_does_not_activate_on_cb01_alone();
         $this->test_multi_profile_activation();
 
@@ -102,22 +103,26 @@ class BehaviorClassifierTest
         $this->assertActivates('command-and-control', $obs, 'C2 should activate on KB-02');
     }
 
-    private function test_c2_activates_on_fc01_plus_fc02()
+    private function test_c2_does_not_activate_on_fc01_plus_fc02()
     {
         $obs = array_merge(
             $this->fakeObs('FC-01', 'REST endpoint registration', 'plugin.php', 'register_rest_route('),
             $this->fakeObs('FC-02', 'Outbound HTTP request', 'plugin.php', 'wp_remote_get(')
         );
-        $this->assertActivates('command-and-control', $obs, 'C2 should activate on FC-01 + FC-02');
+        // Calibration evidence: contact-form-7 has FC-01+FC-02 legitimately (REST API + Stripe/reCAPTCHA).
+        // Generic REST endpoint + HTTP alone is not sufficient — family-specific strings are required.
+        $this->assertNotActivates('command-and-control', $obs, 'C2 must not activate on FC-01 + FC-02 alone — common in clean plugins');
     }
 
-    private function test_c2_activates_on_fc01_plus_cb01()
+    private function test_c2_does_not_activate_on_fc01_plus_cb01()
     {
         $obs = array_merge(
             $this->fakeObs('FC-01', 'REST endpoint registration', 'plugin.php', 'register_rest_route('),
             $this->fakeObs('CB-01', 'Unauthenticated REST access', 'plugin.php', "permission_callback' => '__return_true'")
         );
-        $this->assertActivates('command-and-control', $obs, 'C2 should activate on FC-01 + CB-01');
+        // Calibration evidence: contact-form-7 uses __return_true for its public form-submission endpoint.
+        // Public REST endpoint alone is not sufficient — family-specific strings are required.
+        $this->assertNotActivates('command-and-control', $obs, 'C2 must not activate on FC-01 + CB-01 alone — common in contact-form plugins');
     }
 
     private function test_c2_does_not_activate_on_fc01_alone()
@@ -138,10 +143,12 @@ class BehaviorClassifierTest
         $this->assertActivates('payload-delivery', $obs, 'Payload Delivery should activate on DM-01');
     }
 
-    private function test_payload_activates_on_sp01()
+    private function test_payload_does_not_activate_on_sp01_alone()
     {
         $obs = $this->fakeObs('SP-01', 'Concealed payload staging structure', 'abc12', 'directory:abc12, file:defgh123.php');
-        $this->assertActivates('payload-delivery', $obs, 'Payload Delivery should activate on SP-01');
+        // Calibration evidence: SP-01 fires on standard plugin dirs (admin/, class/, assets/).
+        // Reduced SP-01 weight (20) means it requires corroboration from DM-01 or SP-02.
+        $this->assertNotActivates('payload-delivery', $obs, 'Payload Delivery must not activate on SP-01 alone — matches standard plugin directories');
     }
 
     private function test_payload_does_not_activate_on_fc07_alone()
@@ -150,10 +157,22 @@ class BehaviorClassifierTest
         $this->assertNotActivates('payload-delivery', $obs, 'Payload Delivery must not activate on FC-07 alone — extremely common in clean plugins');
     }
 
-    private function test_operator_access_activates_on_fc03()
+    private function test_operator_access_does_not_activate_on_fc03_alone()
     {
         $obs = $this->fakeObs('FC-03', 'Authentication cookie creation', 'plugin.php', 'wp_set_auth_cookie(');
-        $this->assertActivates('operator-access', $obs, 'Operator Access should activate on FC-03');
+        // Calibration evidence: mainwp-child and updraftplus use wp_set_auth_cookie legitimately.
+        // FC-03 alone is insufficient — requires raw setcookie corroboration (FC-04).
+        $this->assertNotActivates('operator-access', $obs, 'Operator Access must not activate on FC-03 alone — used by legitimate remote-management plugins');
+    }
+
+    private function test_operator_access_activates_on_fc03_plus_fc04()
+    {
+        $obs = array_merge(
+            $this->fakeObs('FC-03', 'Authentication cookie creation', 'plugin.php', 'wp_set_auth_cookie('),
+            $this->fakeObs('FC-04', 'Raw cookie write', 'plugin.php', 'setcookie(')
+        );
+        // Auth cookie creation + raw setcookie together indicate programmatic session impersonation.
+        $this->assertActivates('operator-access', $obs, 'Operator Access should activate on FC-03 + FC-04 (auth cookie + raw cookie write)');
     }
 
     private function test_operator_access_activates_on_kb01()
@@ -168,13 +187,15 @@ class BehaviorClassifierTest
         $this->assertActivates('stealth', $obs, 'Stealth should activate on HP-01');
     }
 
-    private function test_stealth_activates_on_cb01_plus_fc01()
+    private function test_stealth_does_not_activate_on_cb01_plus_fc01()
     {
         $obs = array_merge(
             $this->fakeObs('CB-01', 'Unauthenticated REST access', 'plugin.php', "permission_callback' => '__return_true'"),
             $this->fakeObs('FC-01', 'REST endpoint registration', 'plugin.php', 'register_rest_route(')
         );
-        $this->assertActivates('stealth', $obs, 'Stealth should activate on CB-01 + FC-01');
+        // Calibration evidence: contact-form-7's public form-submission REST endpoint uses this pattern legitimately.
+        // Stealth requires HP-01 (self-removal) or HP-02 (template_redirect) as primary evidence.
+        $this->assertNotActivates('stealth', $obs, 'Stealth must not activate on CB-01 + FC-01 alone — documented pattern for public API plugins');
     }
 
     private function test_stealth_does_not_activate_on_cb01_alone()
@@ -243,11 +264,14 @@ class BehaviorClassifierTest
     private function test_summary_contains_file_name()
     {
         $fileName = 'core-logic.php';
-        $obs    = $this->fakeObs('FC-03', 'Authentication cookie creation', $fileName, 'wp_set_auth_cookie(');
+        $obs = array_merge(
+            $this->fakeObs('FC-03', 'Authentication cookie creation', $fileName, 'wp_set_auth_cookie('),
+            $this->fakeObs('FC-04', 'Raw cookie write', $fileName, 'setcookie(')
+        );
         $result = MSP_PG_BehaviorClassifier::classify($obs);
 
         $record = $this->findProfile($result, 'operator-access');
-        $this->assertTrue($record !== null, 'operator-access should activate on FC-03');
+        $this->assertTrue($record !== null, 'operator-access should activate on FC-03 + FC-04');
         $this->assertTrue(
             strpos($record['summary'], $fileName) !== false,
             'summary must reference the file name (' . $fileName . ')'

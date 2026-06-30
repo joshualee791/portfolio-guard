@@ -58,7 +58,7 @@ class MSP_PG_Config
 
     public static function heuristic_version()
     {
-        return apply_filters('msp_pg_heuristic_version', '2026-06-03.2');
+        return apply_filters('msp_pg_heuristic_version', '2026-06-30.1');
     }
 
     public static function max_scan_file_bytes()

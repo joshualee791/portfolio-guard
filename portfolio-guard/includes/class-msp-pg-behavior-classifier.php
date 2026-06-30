@@ -120,7 +120,7 @@ class MSP_PG_BehaviorClassifier
         return apply_filters('msp_pg_behavior_classifier_profiles', array(
             'persistence' => array(
                 'label'     => 'Persistence',
-                'threshold' => 50,
+                'threshold' => 85, // calibrated: HP-01/HP-02 (100) activate; generic combos peak at 80
                 'weights'   => array(
                     'HP-01' => 100, // removes self from plugin list — unambiguous
                     'HP-02' => 100, // hooks template_redirect pre-deactivation — unambiguous
@@ -132,7 +132,7 @@ class MSP_PG_BehaviorClassifier
             ),
             'command-and-control' => array(
                 'label'     => 'Command & Control',
-                'threshold' => 50,
+                'threshold' => 100, // calibrated: family SM/KB strings (100 each) activate; FC combos (max 95) don't
                 'weights'   => array(
                     'SM-01' => 100, // known family bootstrap string — family-specific
                     'SM-02' => 100,
@@ -140,8 +140,8 @@ class MSP_PG_BehaviorClassifier
                     'SM-04' => 100,
                     'SM-05' => 100,
                     'KB-02' => 100, // known family string pattern — family-specific
-                    'FC-01' =>  30, // REST endpoint — generic, requires corroboration
-                    'FC-02' =>  25, // outbound HTTP — generic, requires corroboration
+                    'FC-01' =>  30, // REST endpoint — generic, requires family-string corroboration
+                    'FC-02' =>  25, // outbound HTTP — generic, requires family-string corroboration
                     'CB-01' =>  25, // unauthenticated callback — generic
                     'FC-08' =>  15, // cron registration — generic
                 ),
@@ -151,30 +151,30 @@ class MSP_PG_BehaviorClassifier
                 'threshold' => 50,
                 'weights'   => array(
                     'DM-01' =>  80, // dynamic createElement in PHP output — specific
-                    'SP-01' =>  60, // concealed payload staging structure — specific
+                    'SP-01' =>  20, // calibrated: weight reduced from 60; matches standard dirs (admin, class, assets)
                     'SP-02' =>  40, // secondary staging pattern — moderately specific
                     'FC-07' =>  15, // script enqueue — extremely common in clean plugins
                 ),
             ),
             'operator-access' => array(
                 'label'     => 'Operator Access',
-                'threshold' => 50,
+                'threshold' => 65, // calibrated: FC-03+FC-04 (70) activates; FC-03 alone or with redirects (max 50) doesn't
                 'weights'   => array(
                     'KB-01' => 100, // known auth impersonation pattern — family-specific
-                    'FC-03' =>  60, // wp_set_auth_cookie — suspicious outside auth plugins
-                    'FC-04' =>  40, // raw setcookie — token-write corroboration
-                    'FC-06' =>  40, // admin redirect post-session creation
-                    'FC-05' =>  30, // cookie read/manipulation
+                    'FC-03' =>  30, // calibrated: wp_set_auth_cookie appears in legitimate remote-management plugins
+                    'FC-04' =>  40, // raw setcookie — token-write corroboration, rare in legitimate plugins
+                    'FC-06' =>  10, // calibrated: wp_safe_redirect is generic (any admin form uses it)
+                    'FC-05' =>  10, // calibrated: $_COOKIE common in vendor/PSR library interfaces
                 ),
             ),
             'stealth' => array(
                 'label'     => 'Stealth',
-                'threshold' => 50,
+                'threshold' => 60, // calibrated: HP-01 (100) and HP-02 (80) activate; CB-01+FC-01 (40) doesn't
                 'weights'   => array(
                     'HP-01' => 100, // self-removal from plugin list — unambiguous
                     'HP-02' =>  80, // template_redirect hook — specific
-                    'CB-01' =>  30, // unauthenticated REST — generic, requires corroboration
-                    'FC-01' =>  25, // REST endpoint — generic
+                    'CB-01' =>  20, // calibrated: public REST endpoints use __return_true legitimately
+                    'FC-01' =>  20, // REST endpoint — generic
                 ),
             ),
         ));

@@ -1,0 +1,712 @@
+﻿Portfolio Guard 2.0.2 — Behavior Classifier Calibration Report
+Generated: 2026-06-30 19:13:26 UTC
+
+Classifier version:    2026-06-30.1
+Signature version:     2026-06-05.1
+
+
+========================================================================
+CORPUS: CLEAN PLUGINS
+========================================================================
+
+--- classic-editor-1.6.5 ---
+  Signals extracted: 1
+
+  Profile: persistence (Persistence)
+    Score:     0 / 85  |  not activated
+    Present signals: (none)
+
+  Profile: command-and-control (Command & Control)
+    Score:     0 / 100  |  not activated
+    Present signals: (none)
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     15 / 50  |  not activated
+    Present signals:
+      + FC-07  (weight 15)
+          file: classic-editor.php
+          matched: wp_enqueue_script(
+
+  Profile: operator-access (Operator Access)
+    Score:     0 / 65  |  not activated
+    Present signals: (none)
+
+  Profile: stealth (Stealth)
+    Score:     0 / 60  |  not activated
+    Present signals: (none)
+
+  Result: CLEAN (no profiles activated)
+
+--- contact-form-7-5.9.8 ---
+  Signals extracted: 20
+
+  Profile: persistence (Persistence)
+    Score:     80 / 85  |  not activated
+    Present signals:
+      + FC-08  (weight 30)
+          file: admin/includes/welcome-panel.php
+          matched: wp_ajax_
+      + FC-01  (weight 20)
+          file: includes/rest-api.php
+          matched: register_rest_route(
+      + CB-01  (weight 15)
+          file: includes/rest-api.php
+          matched: permission_callback' => '__return_true'
+      + SP-01  (weight 15)
+          file: admin
+          matched: directory:admin, file:messages.php
+
+  Profile: command-and-control (Command & Control)
+    Score:     95 / 100  |  not activated
+    Present signals:
+      + FC-01  (weight 30)
+          file: includes/rest-api.php
+          matched: register_rest_route(
+      + FC-02  (weight 25)
+          file: includes/integration.php
+          matched: wp_remote_post(
+          file: modules/recaptcha/service.php
+          matched: wp_remote_post(
+          file: modules/sendinblue/service.php
+          matched: wp_remote_get(
+          file: modules/stripe/api.php
+          matched: wp_remote_get(
+      + CB-01  (weight 25)
+          file: includes/rest-api.php
+          matched: permission_callback' => '__return_true'
+      + FC-08  (weight 15)
+          file: admin/includes/welcome-panel.php
+          matched: wp_ajax_
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     35 / 50  |  not activated
+    Present signals:
+      + SP-01  (weight 20)
+          file: admin
+          matched: directory:admin, file:messages.php
+      + FC-07  (weight 15)
+          file: admin/admin.php
+          matched: wp_enqueue_script(
+          file: includes/controller.php
+          matched: wp_register_script(
+          file: includes/swv/script-loader.php
+          matched: wp_register_script(
+          file: modules/recaptcha/recaptcha.php
+          matched: wp_register_script(
+          file: modules/stripe/stripe.php
+          matched: wp_register_script(
+
+  Profile: operator-access (Operator Access)
+    Score:     10 / 65  |  not activated
+    Present signals:
+      + FC-06  (weight 10)
+          file: admin/admin.php
+          matched: wp_safe_redirect(
+          file: admin/includes/config-validator.php
+          matched: wp_safe_redirect(
+          file: includes/integration.php
+          matched: wp_safe_redirect(
+          file: modules/constant-contact/service.php
+          matched: wp_safe_redirect(
+          file: modules/recaptcha/service.php
+          matched: wp_safe_redirect(
+          file: modules/sendinblue/service.php
+          matched: wp_safe_redirect(
+          file: modules/stripe/service.php
+          matched: wp_safe_redirect(
+
+  Profile: stealth (Stealth)
+    Score:     40 / 60  |  not activated
+    Present signals:
+      + CB-01  (weight 20)
+          file: includes/rest-api.php
+          matched: permission_callback' => '__return_true'
+      + FC-01  (weight 20)
+          file: includes/rest-api.php
+          matched: register_rest_route(
+
+  Result: CLEAN (no profiles activated)
+
+--- mainwp-child-4.6 ---
+  Signals extracted: 31
+
+  Profile: persistence (Persistence)
+    Score:     45 / 85  |  not activated
+    Present signals:
+      + FC-08  (weight 30)
+          file: class/class-mainwp-child-back-up-buddy.php
+          matched: wp_ajax_
+          file: class/class-mainwp-child-server-information.php
+          matched: wp_ajax_
+          file: class/class-mainwp-child-wordfence.php
+          matched: wp_ajax_
+          file: class/class-mainwp-clone.php
+          matched: wp_ajax_
+      + SP-01  (weight 15)
+          file: class
+          matched: directory:class, file:autoload.php
+
+  Profile: command-and-control (Command & Control)
+    Score:     40 / 100  |  not activated
+    Present signals:
+      + FC-02  (weight 25)
+          file: class/class-mainwp-child-back-up-buddy.php
+          matched: wp_remote_get(
+          file: class/class-mainwp-child-bulk-settings-manager.php
+          matched: wp_remote_post(
+          file: class/class-mainwp-child-cache-purge.php
+          matched: wp_remote_get(
+          file: class/class-mainwp-child-misc.php
+          matched: wp_remote_get(
+          file: class/class-mainwp-child-plugins-check.php
+          matched: wp_remote_get(
+          file: class/class-mainwp-child-server-information-base.php
+          matched: wp_remote_post(
+          file: class/class-mainwp-child-themes-check.php
+          matched: wp_remote_post(
+          file: class/class-mainwp-child-updraft-plus-backups.php
+          matched: wp_remote_post(
+          file: class/class-mainwp-clone.php
+php : PHP Warning:  file_put_contents(C:\analysis\validation\calibration-report.txt): Failed to open stream: Resource temporarily unavailable in C:\analysis\validation\calibrate.php on line 130
+At line:1 char:40
++ Set-Location "C:\analysis\validation"; php calibrate.php 2>&1 | Out-F ...
++                                        ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PHP Warning:  f...php on line 130:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+          matched: wp_remote_get(
+      + FC-08  (weight 15)
+          file: class/class-mainwp-child-back-up-buddy.php
+          matched: wp_ajax_
+          file: class/class-mainwp-child-server-information.php
+          matched: wp_ajax_
+          file: class/class-mainwp-child-wordfence.php
+          matched: wp_ajax_
+          file: class/class-mainwp-clone.php
+          matched: wp_ajax_
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     35 / 50  |  not activated
+    Present signals:
+      + SP-01  (weight 20)
+          file: class
+          matched: directory:class, file:autoload.php
+      + FC-07  (weight 15)
+          file: class/class-mainwp-clone-page.php
+          matched: wp_enqueue_script(
+
+  Profile: operator-access (Operator Access)
+    Score:     50 / 65  |  not activated
+    Present signals:
+      + FC-03  (weight 30)
+          file: class/class-mainwp-connect.php
+          matched: wp_set_auth_cookie(
+      + FC-06  (weight 10)
+          file: class/class-mainwp-child-back-up-buddy.php
+          matched: wp_safe_redirect(
+          file: class/class-mainwp-child-back-up-wordpress.php
+          matched: wp_safe_redirect(
+          file: class/class-mainwp-child-back-wp-up.php
+          matched: wp_safe_redirect(
+          file: class/class-mainwp-child-branding.php
+          matched: wp_safe_redirect(
+          file: class/class-mainwp-child-ithemes-security.php
+          matched: wp_safe_redirect(
+          file: class/class-mainwp-child-jetpack-protect.php
+          matched: wp_safe_redirect(
+          file: class/class-mainwp-child-jetpack-scan.php
+          matched: wp_safe_redirect(
+          file: class/class-mainwp-child-staging.php
+          matched: wp_safe_redirect(
+          file: class/class-mainwp-child-timecapsule.php
+          matched: wp_safe_redirect(
+          file: class/class-mainwp-child-updraft-plus-backups.php
+          matched: wp_safe_redirect(
+          file: class/class-mainwp-child-wp-rocket.php
+          matched: wp_safe_redirect(
+          file: class/class-mainwp-connect.php
+          matched: wp_safe_redirect(
+          file: class/class-mainwp-pages.php
+          matched: wp_safe_redirect(
+      + FC-05  (weight 10)
+          file: class/class-mainwp-child-bulk-settings-manager.php
+          matched: $_COOKIE
+          file: libs/phpseclib/vendor/phpseclib/phpseclib/phpseclib/Crypt/Random.php
+          matched: $_COOKIE
+
+  Profile: stealth (Stealth)
+    Score:     0 / 60  |  not activated
+    Present signals: (none)
+
+  Result: CLEAN (no profiles activated)
+
+--- updraftplus-1.24.4 ---
+  Signals extracted: 34
+
+  Profile: persistence (Persistence)
+    Score:     45 / 85  |  not activated
+    Present signals:
+      + FC-08  (weight 30)
+          file: admin.php
+          matched: wp_ajax_nopriv_
+          file: central/bootstrap.php
+          matched: wp_ajax_nopriv_
+          file: central/host.php
+          matched: wp_ajax_
+          file: central/modules/updates.php
+          matched: wp_ajax_
+          file: includes/class-updraft-dashboard-news.php
+          matched: wp_ajax_
+          file: includes/updraftclone/temporary-clone-dash-notice.php
+          matched: wp_ajax_
+          file: includes/updraftclone/temporary-clone-user-notice.php
+          matched: wp_ajax_
+      + SP-01  (weight 15)
+          file: central/images
+          matched: directory:images, file:commands.php
+
+  Profile: command-and-control (Command & Control)
+    Score:     40 / 100  |  not activated
+    Present signals:
+      + FC-02  (weight 25)
+          file: admin.php
+          matched: wp_remote_get(
+          file: central/bootstrap.php
+          matched: wp_remote_post(
+          file: central/modules/analytics.php
+          matched: wp_remote_get(
+          file: central/modules/posts.php
+          matched: wp_remote_get(
+          file: class-updraftplus.php
+          matched: wp_remote_get(
+          file: includes/Dropbox2/OAuth/Consumer/WordPress.php
+          matched: wp_remote_get(
+          file: includes/class-commands.php
+          matched: wp_remote_get(
+          file: includes/pcloud/UpdraftPlus_Pcloud_API.php
+          matched: wp_remote_get(
+          file: includes/updraftplus-login.php
+          matched: wp_remote_post(
+          file: methods/googledrive.php
+          matched: wp_remote_get(
+          file: methods/updraftvault.php
+          matched: wp_remote_post(
+          file: templates/wp-admin/advanced/site-info.php
+          matched: wp_remote_get(
+          file: vendor/team-updraft/common-libs/src/updraft-rpc/class-udrpc.php
+          matched: wp_remote_post(
+          file: vendor/team-updraft/common-libs/src/updraft-rpc/class-udrpc2.php
+          matched: wp_remote_post(
+      + FC-08  (weight 15)
+          file: admin.php
+          matched: wp_ajax_nopriv_
+          file: central/bootstrap.php
+          matched: wp_ajax_nopriv_
+          file: central/host.php
+          matched: wp_ajax_
+          file: central/modules/updates.php
+          matched: wp_ajax_
+          file: includes/class-updraft-dashboard-news.php
+          matched: wp_ajax_
+          file: includes/updraftclone/temporary-clone-dash-notice.php
+          matched: wp_ajax_
+          file: includes/updraftclone/temporary-clone-user-notice.php
+          matched: wp_ajax_
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     35 / 50  |  not activated
+    Present signals:
+      + SP-01  (weight 20)
+          file: central/images
+          matched: directory:images, file:commands.php
+      + FC-07  (weight 15)
+          file: admin.php
+          matched: wp_register_script(
+          file: central/bootstrap.php
+          matched: wp_enqueue_script(
+          file: class-updraftplus.php
+          matched: wp_enqueue_script(
+          file: includes/checkout-embed/class-udp-checkout-embed.php
+          matched: wp_enqueue_script(
+          file: includes/updraftplus-tour.php
+          matched: wp_register_script(
+          file: methods/backup-module.php
+          matched: wp_add_inline_script(
+
+  Profile: operator-access (Operator Access)
+    Score:     50 / 65  |  not activated
+    Present signals:
+      + FC-03  (weight 30)
+          file: central/listener.php
+          matched: wp_set_auth_cookie(
+          file: includes/updraftclone/temporary-clone-auto-login.php
+          matched: wp_set_auth_cookie(
+      + FC-06  (weight 10)
+          file: central/listener.php
+          matched: wp_safe_redirect(
+      + FC-05  (weight 10)
+          file: vendor/guzzlehttp/psr7/src/ServerRequest.php
+          matched: $_COOKIE
+          file: vendor/phpseclib/phpseclib/phpseclib/Crypt/Random.php
+          matched: $_COOKIE
+          file: vendor/psr/http-message/src/ServerRequestInterface.php
+          matched: $_COOKIE
+
+  Profile: stealth (Stealth)
+    Score:     0 / 60  |  not activated
+    Present signals: (none)
+
+  Result: CLEAN (no profiles activated)
+
+--- wp-mail-smtp-4.1.0 ---
+  Signals extracted: 39
+
+  Profile: persistence (Persistence)
+    Score:     45 / 85  |  not activated
+    Present signals:
+      + FC-08  (weight 30)
+          file: src/Admin/Area.php
+          matched: wp_ajax_
+          file: src/Admin/DashboardWidget.php
+          matched: wp_ajax_
+          file: src/Admin/DebugEvents/DebugEvents.php
+          matched: wp_ajax_
+          file: src/Admin/Education.php
+          matched: wp_ajax_
+          file: src/Admin/Notifications.php
+          matched: wp_ajax_
+          file: src/Admin/Review.php
+          matched: wp_ajax_
+          file: src/Admin/SetupWizard.php
+          matched: wp_ajax_
+          file: src/Connect.php
+          matched: wp_ajax_nopriv_
+          file: src/Migrations.php
+          matched: wp_ajax_nopriv_
+          file: src/SiteHealth.php
+          matched: wp_ajax_
+          file: vendor/woocommerce/action-scheduler/lib/WP_Async_Request.php
+          matched: wp_ajax_nopriv_
+      + SP-01  (weight 15)
+          file: assets
+          matched: directory:assets, file:AboutTab.php
+
+  Profile: command-and-control (Command & Control)
+    Score:     40 / 100  |  not activated
+    Present signals:
+      + FC-02  (weight 25)
+          file: src/Admin/DomainChecker.php
+          matched: wp_remote_get(
+          file: src/Admin/Notifications.php
+          matched: wp_remote_get(
+          file: src/Admin/SetupWizard.php
+          matched: wp_remote_post(
+          file: src/Geo.php
+          matched: wp_remote_get(
+          file: src/Helpers/Helpers.php
+          matched: wp_remote_get(
+          file: src/Migrations.php
+          matched: wp_remote_post(
+          file: src/UsageTracking/SendUsageTask.php
+          matched: wp_remote_post(
+          file: src/UsageTracking/UsageTracking.php
+          matched: wp_remote_post(
+          file: vendor/woocommerce/action-scheduler/lib/WP_Async_Request.php
+          matched: wp_remote_post(
+      + FC-08  (weight 15)
+          file: src/Admin/Area.php
+          matched: wp_ajax_
+          file: src/Admin/DashboardWidget.php
+          matched: wp_ajax_
+          file: src/Admin/DebugEvents/DebugEvents.php
+          matched: wp_ajax_
+          file: src/Admin/Education.php
+          matched: wp_ajax_
+          file: src/Admin/Notifications.php
+          matched: wp_ajax_
+          file: src/Admin/Review.php
+          matched: wp_ajax_
+          file: src/Admin/SetupWizard.php
+          matched: wp_ajax_
+          file: src/Connect.php
+          matched: wp_ajax_nopriv_
+          file: src/Migrations.php
+          matched: wp_ajax_nopriv_
+          file: src/SiteHealth.php
+          matched: wp_ajax_
+          file: vendor/woocommerce/action-scheduler/lib/WP_Async_Request.php
+          matched: wp_ajax_nopriv_
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     35 / 50  |  not activated
+    Present signals:
+      + SP-01  (weight 20)
+          file: assets
+          matched: directory:assets, file:AboutTab.php
+      + FC-07  (weight 15)
+          file: src/Admin/Area.php
+          matched: wp_enqueue_script(
+          file: src/Admin/DashboardWidget.php
+          matched: wp_enqueue_script(
+          file: src/Admin/Notifications.php
+          matched: wp_enqueue_script(
+          file: src/Admin/Pages/AdditionalConnectionsTab.php
+          matched: wp_enqueue_script(
+          file: src/Admin/Pages/DebugEventsTab.php
+          matched: wp_enqueue_script(
+          file: src/Admin/Pages/EmailReportsTab.php
+          matched: wp_enqueue_script(
+          file: src/Admin/Pages/LogsTab.php
+          matched: wp_enqueue_script(
+          file: src/Admin/SetupWizard.php
+          matched: wp_enqueue_script(
+          file: src/Connect.php
+          matched: wp_enqueue_script(
+
+  Profile: operator-access (Operator Access)
+    Score:     20 / 65  |  not activated
+    Present signals:
+      + FC-06  (weight 10)
+          file: src/Admin/Area.php
+          matched: wp_safe_redirect(
+          file: src/Admin/Pages/SettingsTab.php
+          matched: wp_safe_redirect(
+          file: src/Admin/SetupWizard.php
+          matched: wp_safe_redirect(
+          file: src/DBRepair.php
+          matched: wp_safe_redirect(
+          file: src/Providers/Gmail/Auth.php
+          matched: wp_safe_redirect(
+          file: vendor/woocommerce/action-scheduler/classes/abstracts/ActionScheduler_Abstract_ListTable.php
+          matched: wp_safe_redirect(
+      + FC-05  (weight 10)
+          file: vendor/woocommerce/action-scheduler/lib/WP_Async_Request.php
+          matched: $_COOKIE
+          file: vendor_prefixed/guzzlehttp/psr7/src/ServerRequest.php
+          matched: $_COOKIE
+          file: vendor_prefixed/psr/http-message/src/ServerRequestInterface.php
+          matched: $_COOKIE
+
+  Profile: stealth (Stealth)
+    Score:     0 / 60  |  not activated
+    Present signals: (none)
+
+  Result: CLEAN (no profiles activated)
+
+========================================================================
+CLEAN PLUGINS SUMMARY
+========================================================================
+  Total plugins: 5
+  False positives: 0 / 5
+
+========================================================================
+CORPUS: KNOWN MALWARE
+========================================================================
+
+--- framework-triappment ---
+  Signals extracted: 0
+
+  Profile: persistence (Persistence)
+    Score:     0 / 85  |  not activated
+    Present signals: (none)
+
+  Profile: command-and-control (Command & Control)
+    Score:     0 / 100  |  not activated
+    Present signals: (none)
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     0 / 50  |  not activated
+    Present signals: (none)
+
+  Profile: operator-access (Operator Access)
+    Score:     0 / 65  |  not activated
+    Present signals: (none)
+
+  Profile: stealth (Stealth)
+    Score:     0 / 60  |  not activated
+    Present signals: (none)
+
+  Result: CLEAN (no profiles activated)
+
+--- laravel-janet ---
+  Signals extracted: 0
+
+  Profile: persistence (Persistence)
+    Score:     0 / 85  |  not activated
+    Present signals: (none)
+
+  Profile: command-and-control (Command & Control)
+    Score:     0 / 100  |  not activated
+    Present signals: (none)
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     0 / 50  |  not activated
+    Present signals: (none)
+
+  Profile: operator-access (Operator Access)
+    Score:     0 / 65  |  not activated
+    Present signals: (none)
+
+  Profile: stealth (Stealth)
+    Score:     0 / 60  |  not activated
+    Present signals: (none)
+
+  Result: CLEAN (no profiles activated)
+
+--- macrolayer-macroflag ---
+  Signals extracted: 0
+
+  Profile: persistence (Persistence)
+    Score:     0 / 85  |  not activated
+    Present signals: (none)
+
+  Profile: command-and-control (Command & Control)
+    Score:     0 / 100  |  not activated
+    Present signals: (none)
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     0 / 50  |  not activated
+    Present signals: (none)
+
+  Profile: operator-access (Operator Access)
+    Score:     0 / 65  |  not activated
+    Present signals: (none)
+
+  Profile: stealth (Stealth)
+    Score:     0 / 60  |  not activated
+    Present signals: (none)
+
+  Result: CLEAN (no profiles activated)
+
+--- miniapplicationing-protypescriptic ---
+  Signals extracted: 0
+
+  Profile: persistence (Persistence)
+    Score:     0 / 85  |  not activated
+    Present signals: (none)
+
+  Profile: command-and-control (Command & Control)
+    Score:     0 / 100  |  not activated
+    Present signals: (none)
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     0 / 50  |  not activated
+    Present signals: (none)
+
+  Profile: operator-access (Operator Access)
+    Score:     0 / 65  |  not activated
+    Present signals: (none)
+
+  Profile: stealth (Stealth)
+    Score:     0 / 60  |  not activated
+    Present signals: (none)
+
+  Result: CLEAN (no profiles activated)
+
+--- platformist-quadendpointer ---
+  Signals extracted: 0
+
+  Profile: persistence (Persistence)
+    Score:     0 / 85  |  not activated
+    Present signals: (none)
+
+  Profile: command-and-control (Command & Control)
+    Score:     0 / 100  |  not activated
+    Present signals: (none)
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     0 / 50  |  not activated
+    Present signals: (none)
+
+  Profile: operator-access (Operator Access)
+    Score:     0 / 65  |  not activated
+    Present signals: (none)
+
+  Profile: stealth (Stealth)
+    Score:     0 / 60  |  not activated
+    Present signals: (none)
+
+  Result: CLEAN (no profiles activated)
+
+--- smartrestal-serverful ---
+  Signals extracted: 0
+
+  Profile: persistence (Persistence)
+    Score:     0 / 85  |  not activated
+    Present signals: (none)
+
+  Profile: command-and-control (Command & Control)
+    Score:     0 / 100  |  not activated
+    Present signals: (none)
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     0 / 50  |  not activated
+    Present signals: (none)
+
+  Profile: operator-access (Operator Access)
+    Score:     0 / 65  |  not activated
+    Present signals: (none)
+
+  Profile: stealth (Stealth)
+    Score:     0 / 60  |  not activated
+    Present signals: (none)
+
+  Result: CLEAN (no profiles activated)
+
+--- these-middleware ---
+  Signals extracted: 0
+
+  Profile: persistence (Persistence)
+    Score:     0 / 85  |  not activated
+    Present signals: (none)
+
+  Profile: command-and-control (Command & Control)
+    Score:     0 / 100  |  not activated
+    Present signals: (none)
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     0 / 50  |  not activated
+    Present signals: (none)
+
+  Profile: operator-access (Operator Access)
+    Score:     0 / 65  |  not activated
+    Present signals: (none)
+
+  Profile: stealth (Stealth)
+    Score:     0 / 60  |  not activated
+    Present signals: (none)
+
+  Result: CLEAN (no profiles activated)
+
+--- uniserviceist-multiinfrastructure ---
+  Signals extracted: 0
+
+  Profile: persistence (Persistence)
+    Score:     0 / 85  |  not activated
+    Present signals: (none)
+
+  Profile: command-and-control (Command & Control)
+    Score:     0 / 100  |  not activated
+    Present signals: (none)
+
+  Profile: payload-delivery (Payload Delivery)
+    Score:     0 / 50  |  not activated
+    Present signals: (none)
+
+  Profile: operator-access (Operator Access)
+    Score:     0 / 65  |  not activated
+    Present signals: (none)
+
+  Profile: stealth (Stealth)
+    Score:     0 / 60  |  not activated
+    Present signals: (none)
+
+  Result: CLEAN (no profiles activated)
+
+========================================================================
+KNOWN MALWARE SUMMARY
+========================================================================
+  Total plugins: 8
+  False positives: 0 / 8
+
+[Report written to C:\analysis\validation\calibration-report.txt]
