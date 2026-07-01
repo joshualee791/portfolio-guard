@@ -4,7 +4,7 @@ Tags: MainWP, security, malware remediation, malware detection, wordpress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.0.5
+Stable tag: 2.0.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -63,6 +63,11 @@ The default retention mode is `metadata_only`, which stores evidence manifests a
 Yes. Portfolio Guard development and built-in family signatures are informed by preserved malware specimens and reverse-engineering research, including Atlas-ecosystem coverage.
 
 == Changelog ==
+
+= 2.0.6 =
+* Added fleet baseline trust list: six standard MSP plugins (disable-comments, essential-addons-for-elementor-lite, seo-by-rank-math, wordfence, wp-rocket, wpmudev-updates) now suppress Tier 2 behavioral Review Required findings on healthy fleet sites. Tier 1 signature detections are unaffected.
+* Signature updates now retrieve registry-manifest.json from GitHub Releases. Manifest URL is validated before download; malformed or non-HTTPS URLs fail gracefully without replacing the active registry.
+* Release workflow now generates and signs registry-manifest.json using the MSP_PG_UPDATE_KEY secret, and publishes signatures.json and registry-manifest.json as release assets.
 
 = 2.0.5 =
 * Deployment baseline release. Establishes 2.0.5 as the recommended starting point for all new installations and the origin point for future native WordPress updates. No functional changes.
