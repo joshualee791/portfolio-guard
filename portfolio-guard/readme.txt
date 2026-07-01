@@ -4,7 +4,7 @@ Tags: MainWP, security, malware remediation, malware detection, wordpress
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.0.6
+Stable tag: 2.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -63,6 +63,9 @@ The default retention mode is `metadata_only`, which stores evidence manifests a
 Yes. Portfolio Guard development and built-in family signatures are informed by preserved malware specimens and reverse-engineering research, including Atlas-ecosystem coverage.
 
 == Changelog ==
+
+= 2.0.7 =
+* Reduced plugin update metadata cache interval from 12 hours to 1 hour. New releases now propagate to fleet sites within one hour rather than up to 24 hours. Interval is now defined in MSP_PG_Config and filterable via msp_pg_plugin_update_check_interval.
 
 = 2.0.6 =
 * Added fleet baseline trust list: six standard MSP plugins (disable-comments, essential-addons-for-elementor-lite, seo-by-rank-math, wordfence, wp-rocket, wpmudev-updates) now suppress Tier 2 behavioral Review Required findings on healthy fleet sites. Tier 1 signature detections are unaffected.
