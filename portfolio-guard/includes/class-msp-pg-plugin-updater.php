@@ -6,8 +6,6 @@ if (!defined('ABSPATH')) {
 
 class MSP_PG_PluginUpdater
 {
-    const CHECK_INTERVAL = 43200; // 12 hours in seconds
-
     public static function register()
     {
         add_action('admin_init', array('MSP_PG_PluginUpdater', 'maybe_check'));
@@ -18,7 +16,7 @@ class MSP_PG_PluginUpdater
     public static function maybe_check()
     {
         $lastChecked = (int) get_option('msp_pg_plugin_update_last_checked', 0);
-        if ((time() - $lastChecked) < self::CHECK_INTERVAL) {
+        if ((time() - $lastChecked) < MSP_PG_Config::plugin_update_check_interval()) {
             return;
         }
 

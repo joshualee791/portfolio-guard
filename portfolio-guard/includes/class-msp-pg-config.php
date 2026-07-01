@@ -224,4 +224,9 @@ class MSP_PG_Config
     {
         return 'https://github.com/joshualee791/portfolio-guard/releases/latest/download/plugin.json';
     }
+
+    public static function plugin_update_check_interval()
+    {
+        return (int) apply_filters('msp_pg_plugin_update_check_interval', HOUR_IN_SECONDS);
+    }
 }
