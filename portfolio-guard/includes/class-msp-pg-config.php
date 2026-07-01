@@ -179,9 +179,28 @@ class MSP_PG_Config
     // Update infrastructure (Spec 007)
     // -------------------------------------------------------------------------
 
+    /**
+     * Slugs of plugins that are part of the standard MSP fleet baseline.
+     *
+     * Tier 2 (behavioral) Review Required findings for these slugs are
+     * suppressed automatically. Tier 1 (signature) detections are unaffected.
+     * Extend via the msp_pg_trusted_plugin_slugs filter to add site-specific slugs.
+     */
+    public static function trusted_plugin_slugs()
+    {
+        return apply_filters('msp_pg_trusted_plugin_slugs', array(
+            'disable-comments',
+            'essential-addons-for-elementor-lite',
+            'seo-by-rank-math',
+            'wordfence',
+            'wp-rocket',
+            'wpmudev-updates',
+        ));
+    }
+
     public static function update_manifest_url()
     {
-        return 'https://registry.portfolioguard.internal/v1/manifest.json';
+        return 'https://github.com/joshualee791/portfolio-guard/releases/latest/download/registry-manifest.json';
     }
 
     public static function update_key()

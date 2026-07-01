@@ -21,6 +21,19 @@ class MSP_PG_Updater
     {
         $manifestUrl = MSP_PG_Config::update_manifest_url();
 
+        $urlError = self::validate_url($manifestUrl);
+        if ($urlError !== '') {
+            $msg = 'MSP Portfolio Guard: signature update aborted — ' . $urlError
+                . ' (configured URL: ' . $manifestUrl . ').';
+            error_log($msg);
+            wp_mail(
+                MSP_PG_Config::report_recipient(),
+                '[MSP Portfolio Guard] Signature update URL invalid on ' . get_site_url(),
+                $msg
+            );
+            return;
+        }
+
         $manifestResponse = wp_remote_get($manifestUrl, array(
             'sslverify'  => true,
             'timeout'    => 15,
@@ -230,6 +243,28 @@ class MSP_PG_Updater
                 $body
             );
         }
+    }
+
+    /**
+     * Validate that a URL is safe to fetch for signature updates.
+     * Returns an empty string on success, or a human-readable error description.
+     */
+    private static function validate_url($url)
+    {
+        if (!is_string($url) || $url === '') {
+            return 'update manifest URL is empty or not configured';
+        }
+
+        if (strpos($url, 'https://') !== 0) {
+            return 'update manifest URL must use HTTPS (got: ' . $url . ')';
+        }
+
+        $parsed = wp_parse_url($url);
+        if (!is_array($parsed) || empty($parsed['host'])) {
+            return 'update manifest URL is malformed and could not be parsed';
+        }
+
+        return '';
     }
 
     private static function notify_integrity_failure($type)

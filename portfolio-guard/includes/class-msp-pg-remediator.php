@@ -76,6 +76,12 @@ class MSP_PG_Remediator
                 continue;
             }
 
+            // Fleet baseline trust list: suppress Tier 2 behavioral findings for known-safe MSP plugins.
+            // Tier 1 (signature) detections are never suppressed by this list.
+            if ($analysis['tier'] === 'tier2' && $operatorConfirm === '' && in_array($slug, MSP_PG_Config::trusted_plugin_slugs(), true)) {
+                continue;
+            }
+
             // Operator-confirmed upgrade: treat a reviewed Tier 2 finding as Tier 1
             if ($operatorConfirm !== '' && $slug === $operatorConfirm && $analysis['tier'] === 'tier2') {
                 $analysis['tier']             = 'tier1';

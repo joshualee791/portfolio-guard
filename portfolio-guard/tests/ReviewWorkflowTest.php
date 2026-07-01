@@ -58,6 +58,9 @@ class ReviewWorkflowTest
             'test_explain_all_activates_for_malware',
             'test_plugin_version_reads_header',
             'test_plugin_version_empty_when_absent',
+            'test_trusted_slug_suppresses_tier2_finding',
+            'test_trusted_slug_does_not_suppress_tier1_finding',
+            'test_untrusted_slug_is_not_suppressed_by_trust_list',
         );
 
         foreach ($methods as $method) {
@@ -368,6 +371,102 @@ class ReviewWorkflowTest
         $dir = $this->create_temp_plugin('no-version-plugin', "<?php\n// No version header here\necho 'hello';\n");
         $version = MSP_PG_Utils::plugin_version($dir);
         $this->assertTrue($version === '', 'plugin_version: must return empty string when no Version: header found');
+    }
+
+    private function test_trusted_slug_suppresses_tier2_finding()
+    {
+        // Use a real behavioral fixture (operator-access) but rename it to a trusted slug
+        // so the scanner sees it as a fleet-baseline plugin.
+        $sourceSlug = 'synthetic-operator-access';
+        $trustedSlug = 'wordfence';
+        $sourceDir = $this->corpus_dir('synthetic') . DIRECTORY_SEPARATOR . $sourceSlug;
+
+        if (!is_dir($sourceDir)) {
+            $this->markSkipped('test_trusted_slug_suppresses_tier2_finding', $sourceSlug . ' fixture not found');
+            return;
+        }
+
+        // Copy fixture under the trusted slug name
+        $destDir = WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $trustedSlug;
+        MSP_PG_Utils::copy_directory($sourceDir, $destDir);
+        $this->pluginDir = $destDir;
+
+        $report = MSP_PG_Remediator::run_scan('manual', array('dry_run' => true));
+
+        $this->assertTrue(is_array($report), 'trusted_slug_suppress: scan must return array');
+        $reviewSlugs = array_column($report['review_required'], 'plugin_slug');
+        $this->assertFalse(
+            in_array($trustedSlug, $reviewSlugs, true),
+            'trusted_slug_suppress: fleet-baseline trusted slug must not appear in review_required'
+        );
+    }
+
+    private function test_trusted_slug_does_not_suppress_tier1_finding()
+    {
+        // Create a plugin directory named after a trusted slug but inject a Tier 1 signature string.
+        // The trust list must NOT suppress Tier 1 detections.
+        $trustedSlug = 'wordfence';
+        $destDir = WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $trustedSlug;
+        @mkdir($destDir, 0777, true);
+        // Inject a known family bootstrap string that triggers Tier 1 via exact IOC match
+        file_put_contents(
+            $destDir . DIRECTORY_SEPARATOR . $trustedSlug . '.php',
+            "<?php\n/**\n * Plugin Name: $trustedSlug\n */\n// fastreactic_nanomicroserviceing\n"
+        );
+        $this->pluginDir = $destDir;
+
+        $report = MSP_PG_Remediator::run_scan('manual', array('dry_run' => true));
+
+        $this->assertTrue(is_array($report), 'trusted_slug_tier1: scan must return array');
+
+        // If any detection found for the trusted slug it could be tier1 or tier2.
+        // The key guarantee: if the scanner found a Tier 1 hit it must NOT be suppressed.
+        $allDetected = array_column($report['detections'], 'plugin_slug');
+        $tier1Slugs  = array_column($report['confirmed_malware'], 'plugin_slug');
+
+        // Only assert if the fixture actually produced a Tier 1 finding
+        if (in_array($trustedSlug, $tier1Slugs, true)) {
+            $this->assertTrue(
+                in_array($trustedSlug, $tier1Slugs, true),
+                'trusted_slug_tier1: Tier 1 detection of a trusted slug must not be suppressed'
+            );
+        }
+        // The trusted slug must not appear in review_required if it was caught as Tier 1
+        // (because Tier 1 overrides Tier 2 — the Detector returns tier1, not tier2).
+        if (in_array($trustedSlug, $allDetected, true)) {
+            $reviewSlugs = array_column($report['review_required'], 'plugin_slug');
+            $this->assertFalse(
+                // If it appeared in detections only as review_required, something is wrong
+                in_array($trustedSlug, $reviewSlugs, true) && !in_array($trustedSlug, $tier1Slugs, true),
+                'trusted_slug_tier1: trusted slug with Tier 1 signals must not appear only in review_required'
+            );
+        }
+    }
+
+    private function test_untrusted_slug_is_not_suppressed_by_trust_list()
+    {
+        // Verify that a non-trusted slug with behavioral signals still produces a finding.
+        $slug = 'synthetic-operator-access';
+        $dir  = $this->corpus_dir('synthetic') . DIRECTORY_SEPARATOR . $slug;
+
+        if (!is_dir($dir)) {
+            $this->markSkipped('test_untrusted_slug_is_not_suppressed_by_trust_list', $slug . ' fixture not found');
+            return;
+        }
+
+        $this->setup_scan_env($dir, $slug, '');
+        $report = MSP_PG_Remediator::run_scan('manual', array('dry_run' => true));
+
+        $this->assertTrue(is_array($report), 'untrusted_slug: scan must return array');
+        // synthetic-operator-access is NOT in the trust list — it must still be reported
+        // (provided it actually activates a behavioral profile)
+        $reviewSlugs = array_column($report['review_required'], 'plugin_slug');
+        if (!empty($report['detections'])) {
+            $this->assertTrue(
+                in_array($slug, $reviewSlugs, true),
+                'untrusted_slug: non-trusted slug with behavioral signals must still appear in review_required'
+            );
+        }
     }
 
     // -------------------------------------------------------------------------

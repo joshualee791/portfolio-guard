@@ -77,6 +77,85 @@ jobs:
           $json | Out-File -FilePath "releases/portfolio-guard/plugin.json" -Encoding utf8NoBOM
           Write-Output $json
 
+      - name: Generate registry manifest
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          VERSION: ${{ steps.version.outputs.version }}
+          MSP_PG_UPDATE_KEY: ${{ secrets.MSP_PG_UPDATE_KEY }}
+        run: |
+          $tag     = $env:TAG
+          $repo    = $env:REPO
+          $version = $env:VERSION
+
+          if (-not $env:MSP_PG_UPDATE_KEY) {
+            Write-Error "FAIL: MSP_PG_UPDATE_KEY secret is not set. Add it in Settings > Secrets and variables > Actions."
+            exit 1
+          }
+
+          # Copy signatures.json from source into the release directory
+          Copy-Item "portfolio-guard/data/signatures.json" "releases/portfolio-guard/signatures.json"
+
+          $signaturesUrl  = "https://github.com/$repo/releases/download/$tag/signatures.json"
+          $signaturesPath = "releases/portfolio-guard/signatures.json"
+          $manifestPath   = "releases/portfolio-guard/registry-manifest.json"
+
+          # Use PHP (already set up) to compute SHA-256, build the canonical body, and sign with HMAC.
+          # The signing key is injected via the MSP_PG_UPDATE_KEY secret — never hardcoded here.
+          # The algorithm must match MSP_PG_Config::update_key() and MSP_PG_UpdateVerifier.
+          $phpScript = @'
+<?php
+$signaturesPath = $argv[1];
+$signaturesUrl  = $argv[2];
+$keyHex         = getenv('MSP_PG_UPDATE_KEY');
+
+if ($keyHex === false || $keyHex === '') {
+    fwrite(STDERR, "MSP_PG_UPDATE_KEY env var is not set\n");
+    exit(1);
+}
+
+$signaturesJson = file_get_contents($signaturesPath);
+if ($signaturesJson === false) {
+    fwrite(STDERR, "Cannot read signatures.json\n");
+    exit(1);
+}
+$signaturesData = json_decode($signaturesJson, true);
+if (!is_array($signaturesData) || !isset($signaturesData['registry_version'])) {
+    fwrite(STDERR, "Invalid signatures.json: missing registry_version\n");
+    exit(1);
+}
+
+$sha256          = hash('sha256', $signaturesJson);
+$registryVersion = (int) $signaturesData['registry_version'];
+
+// Build canonical body (keys sorted lexicographically, no manifest_hmac).
+// Must match MSP_PG_UpdateVerifier::verify_manifest() exactly.
+$body = array(
+    'registry_sha256'  => $sha256,
+    'registry_url'     => $signaturesUrl,
+    'registry_version' => $registryVersion,
+    'schema_version'   => 1,
+);
+ksort($body);
+$canonical = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+$hmac      = hash_hmac('sha256', $canonical, hex2bin($keyHex));
+
+$body['manifest_hmac'] = $hmac;
+echo json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
+'@
+
+          $phpScript | Out-File -FilePath "gen-manifest.php" -Encoding utf8NoBOM
+          $output = php gen-manifest.php $signaturesPath $signaturesUrl
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "FAIL: registry manifest generation failed."
+            exit 1
+          }
+          $output | Out-File -FilePath $manifestPath -Encoding utf8NoBOM
+          Remove-Item "gen-manifest.php"
+
+          Write-Output "Registry manifest written to $manifestPath"
+
       - name: Create GitHub Release
         shell: pwsh
         env:
@@ -93,7 +172,9 @@ jobs:
             '--title', "Portfolio Guard $version",
             "releases/portfolio-guard/portfolio-guard-$version.zip",
             "releases/portfolio-guard/portfolio-guard-$version.sha256",
-            "releases/portfolio-guard/plugin.json"
+            "releases/portfolio-guard/plugin.json",
+            "releases/portfolio-guard/signatures.json",
+            "releases/portfolio-guard/registry-manifest.json"
           )
 
           if ($isPrerelease) {
