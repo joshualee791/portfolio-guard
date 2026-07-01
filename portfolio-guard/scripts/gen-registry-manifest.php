@@ -18,10 +18,26 @@ if ($argc < 3) {
 
 $signaturesPath = $argv[1];
 $signaturesUrl  = $argv[2];
-$keyHex         = getenv('MSP_PG_UPDATE_KEY');
+$keyHex = trim((string) getenv('MSP_PG_UPDATE_KEY'));
 
-if ($keyHex === false || $keyHex === '') {
-    fwrite(STDERR, "MSP_PG_UPDATE_KEY environment variable is not set\n");
+if ($keyHex === '') {
+    fwrite(STDERR, "FAIL: MSP_PG_UPDATE_KEY is not set or is empty.\n");
+    exit(1);
+}
+
+if (strlen($keyHex) !== 64) {
+    fwrite(STDERR, "FAIL: MSP_PG_UPDATE_KEY must be exactly 64 hex characters (got " . strlen($keyHex) . ").\n");
+    exit(1);
+}
+
+if (!ctype_xdigit($keyHex)) {
+    fwrite(STDERR, "FAIL: MSP_PG_UPDATE_KEY contains non-hexadecimal characters.\n");
+    exit(1);
+}
+
+$keyBin = hex2bin($keyHex);
+if ($keyBin === false) {
+    fwrite(STDERR, "FAIL: hex2bin() failed on MSP_PG_UPDATE_KEY — key is malformed.\n");
     exit(1);
 }
 
@@ -55,7 +71,7 @@ if ($canonical === false) {
     exit(1);
 }
 
-$hmac = hash_hmac('sha256', $canonical, hex2bin($keyHex));
+$hmac = hash_hmac('sha256', $canonical, $keyBin);
 
 $body['manifest_hmac'] = $hmac;
 echo json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
