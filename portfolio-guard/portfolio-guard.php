@@ -30,6 +30,7 @@ require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-update-verifier.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-updater.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-update-scheduler.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-diagnostics.php';
+require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-cloud-publisher.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-diagnostics-page.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-plugin-updater.php';
 require_once MSP_PG_PLUGIN_DIR . 'includes/class-msp-pg-plugin.php';

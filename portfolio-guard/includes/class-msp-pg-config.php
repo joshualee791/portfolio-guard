@@ -61,6 +61,16 @@ class MSP_PG_Config
         return apply_filters('msp_pg_heuristic_version', '2026-06-30.1');
     }
 
+    public static function cloud_url()
+    {
+        return (string) apply_filters('msp_pg_cloud_url', '');
+    }
+
+    public static function cloud_api_key()
+    {
+        return (string) apply_filters('msp_pg_cloud_api_key', '');
+    }
+
     public static function max_scan_file_bytes()
     {
         return (int) apply_filters('msp_pg_max_scan_file_bytes', 2 * 1024 * 1024);
