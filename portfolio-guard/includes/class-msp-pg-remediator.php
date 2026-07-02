@@ -184,7 +184,8 @@ class MSP_PG_Remediator
         } else {
             $securityState = 'healthy';
         }
-        MSP_PG_Diagnostics::record_telemetry(array('current_security_state' => $securityState));
+        $telemetry = MSP_PG_Diagnostics::record_telemetry(array('current_security_state' => $securityState));
+        MSP_PG_CloudPublisher::publish($telemetry);
 
         return $scanReport;
     }
